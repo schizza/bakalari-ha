@@ -1,0 +1,11 @@
+name: Question
+description: Dotaz / jak něco nastavit (zvaž místo toho Discussions)
+labels: ["question"]
+body:
+  - type: textarea
+    id: question
+    attributes:
+      label: Dotaz
+      placeholder: "Co přesně potřebuješ?"
+      validations:
+        required: true

@@ -1,0 +1,8 @@
+bug:
+  - '(?i)\b(error|traceback|exception|nefunguje|chyba)\b'
+feature:
+  - '(?i)\b(feature|vylepšení|new|nov[aéý])\b'
+docs:
+  - '(?i)\b(doc|docs|dokumentace|readme)\b'
+question:
+  - '(?i)\b(how|jak|proč|question|dotaz)\b'

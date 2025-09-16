@@ -1,0 +1,85 @@
+name-template: "v$NEXT_VERSION"
+tag-template: "v$NEXT_VERSION"
+
+template: |
+  ## ✨ Nové funkce
+  $CHANGES_SEMVER_MINOR
+
+  ## 🐛 Opravy chyb
+  $CHANGES_SEMVER_PATCH
+
+  ## 🧹 Refaktoring / Údržba
+  $CHANGES_MAINTENANCE
+
+  ## 📝 Dokumentace
+  $CHANGES_DOCS
+
+  ## 🧪 Testy
+  $CHANGES_TESTS
+
+  ## ⚠️ Breaking changes
+  $BREAKING_CHANGES
+
+  ## 🔄 Migration
+  $MIGRATION
+
+  ## 📦 Technické
+  - Verze integrace: `$NEXT_VERSION`
+  - Minimální verze Home Assistant: `2024.8.0`
+
+categories:
+  - title: "CHANGES_SEMVER_MINOR"
+    labels: ["feature", "enhancement", "feat"]
+  - title: "CHANGES_SEMVER_PATCH"
+    labels: ["bug", "fix", "bugfix"]
+  - title: "CHANGES_MAINTENANCE"
+    labels: ["refactor", "chore", "maintenance"]
+  - title: "CHANGES_DOCS"
+    labels: ["docs", "documentation"]
+  - title: "CHANGES_TESTS"
+    labels: ["test", "tests"]
+
+change-template: "- $TITLE by @$AUTHOR in #$NUMBER"
+change-title-escapes: "\\<*_&"
+
+exclude-labels:
+  - "skip-changelog"
+
+version-resolver:
+  major:
+    labels:
+      - breaking
+  minor:
+    labels:
+      - feature
+      - enhancement
+      - feat
+  patch:
+    labels:
+      - fix
+      - bug
+      - bugfix
+      - docs
+      - documentation
+      - chore
+      - refactor
+      - maintenance
+      - test
+      - tests
+  default: patch
+
+replacers:
+  - search: "\\$CHANGES_SEMVER_MINOR\\n"
+    replace: "_Žádné._\n"
+  - search: "\\$CHANGES_SEMVER_PATCH\\n"
+    replace: "_Žádné._\n"
+  - search: "\\$CHANGES_MAINTENANCE\\n"
+    replace: "_Žádné._\n"
+  - search: "\\$CHANGES_DOCS\\n"
+    replace: "_Žádné._\n"
+  - search: "\\$CHANGES_TESTS\\n"
+    replace: "_Žádné._\n"
+  - search: "\\$BREAKING_CHANGES"
+    replace: "_Žádné._"
+  - search: "\\$MIGRATION"
+    replace: "_Není potřeba._"

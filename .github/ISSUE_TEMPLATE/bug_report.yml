@@ -1,0 +1,44 @@
+name: Bug report
+description: Nahlásit chybu v integraci
+labels: ["bug"]
+body:
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: Co se stalo?
+      description: Popiš očekávané vs. skutečné chování.
+      placeholder: "Očekával jsem..., místo toho se stalo..."
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Verze integrace (manifest.json → version)
+      placeholder: "např. 0.1.0"
+  - type: input
+    id: ha
+    attributes:
+      label: Verze Home Assistant
+      placeholder: "např. 2024.8.4"
+  - type: textarea
+    id: repro
+    attributes:
+      label: Jak to zreprodukovat
+      placeholder: "1) ... 2) ... 3) ..."
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logy (DEBUG pokud možno)
+      description: Vyjměte relevantní část z `home-assistant.log` (s anonymizací).
+      render: shell
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Kontrolní seznam
+      options:
+        - label: Vyhledal/a jsem existující issues/PR/Discussions
+          required: true
+        - label: Jsem na poslední verzi integrace
+          required: true
+        - label: Jsem na podporované verzi Home Assistantu
+          required: true

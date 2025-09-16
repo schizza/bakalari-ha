@@ -1,0 +1,26 @@
+[project]
+name = "bakalari-ha"
+version = "0.0.1"
+description = "Home Assistant custom integration for Bakaláři API endpoints."
+readme = "README.md"
+requires-python = ">=3.12"
+license = {text = "MIT"}
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+filterwarnings = [
+  "ignore::DeprecationWarning"
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+extend-select = ["I"]  # import sorting
+
+[tool.ruff.lint.isort]
+known-first-party = ["custom_components.bakalari"]
+
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"

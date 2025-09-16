@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Q&A / Podpora (Discussions)
+    url: https://github.com/schizza/bakalari-ha/discussions
+    about: Dotazy, jak něco nastavit – nepatří do Issues.
+  - name: HACS
+    url: https://hacs.xyz
+    about: Instalace a obecné info k HACS.

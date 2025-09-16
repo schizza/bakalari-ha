@@ -1,0 +1,22 @@
+name: Feature request
+description: Navrhni novou funkci nebo vylepšení
+labels: ["feature"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Jaký problém to řeší?
+      placeholder: "Co ti dnes chybí?"
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Navrhované řešení
+      placeholder: "Popiš ideální chování v HA."
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternativy, které jsi zvažoval/a
+  - type: textarea
+    id: extra
+    attributes:
+      label: Další kontext, mockupy, YAML
