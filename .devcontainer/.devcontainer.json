@@ -1,0 +1,41 @@
+{
+  "name": "async-bakalari-ha (dev)",
+  "build": {
+    "dockerfile": "Dockerfile",
+    "args": {
+      "VARIANT": "3.12"
+    }
+  },
+  "features": {
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {
+      "version": "latest",
+      "moby": true
+    }
+  },
+  "mounts": [
+    "source=${localWorkspaceFolder},target=/workspaces/async-bakalari-ha,type=bind"
+  ],
+  "remoteUser": "vscode",
+  "workspaceFolder": "/workspaces/async-bakalari-ha",
+  "postCreateCommand": "bash .devcontainer/postCreate.sh",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python",
+        "ms-python.vscode-pylance",
+        "charliermarsh.ruff",
+        "ms-azuretools.vscode-docker",
+        "GitHub.vscode-pull-request-github",
+        "yzhang.markdown-all-in-one"
+      ],
+      "settings": {
+        "python.defaultInterpreterPath": "/usr/local/bin/python",
+        "python.testing.pytestEnabled": true,
+        "python.analysis.typeCheckingMode": "basic",
+        "editor.formatOnSave": true,
+        "ruff.importStrategy": "fromEnvironment",
+        "terminal.integrated.defaultProfile.linux": "bash"
+      }
+    }
+  }
+}

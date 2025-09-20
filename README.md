@@ -20,8 +20,8 @@ Custom komponenta pro Home Assistant, založená na [async-bakalari-api3](https:
 
 ## Požadavky
 
-- Home Assistant `2024.8+`
-- PyPI: `async-bakalari-api==0.3.3`
+- Home Assistant `2025.1.4+`
+- PyPI: `async-bakalari-api==0.3.6`
 
 ## Licence
 
