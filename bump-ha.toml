@@ -1,0 +1,22 @@
+[tool.bumpversion]
+current_version = "2025.9.4"
+commit = false
+tag = false
+
+[[tool.bumpversion.files]]
+filename = "Makefile"
+search = 'HA_VERSION := {current_version}'
+replace = 'HA_VERSION := {new_version}'
+
+
+[[tool.bumpversion.files]]
+filename = "hacs.json"
+search = '"homeassistant": "{current_version}"'
+replace = '"homeassistant": "{new_version}"'
+no-regex = true
+
+[[tool.bumpversion.files]]
+filename = ".github/workflows/ci.yml"
+search = 'pip install homeassistant=={current_version}'
+replace = 'pip install homeassistant=={new_version}'
+no-regex = true
