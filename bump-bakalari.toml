@@ -1,0 +1,24 @@
+[tool.bumpversion]
+current_version = "0.3.7"
+commit = false
+tag = false
+
+[[tool.bumpversion.files]]
+filename = "Makefile"
+search = 'BAKALARI_VERSION := {current_version}'
+replace = 'BAKALARI_VERSION := {new_version}'
+
+[[tool.bumpversion.files]]
+filename = "custom_components/bakalari/manifest.json"
+search = '"async-bakalari-api=={current_version}"'
+replace = '"async-bakalari-api=={new_version}"'
+
+[[tool.bumpversion.files]]
+filename = "README.md"
+search = '- PyPI: `async-bakalari-api=={current_version}`'
+replace = '- PyPI: `async-bakalari-api=={new_version}`'
+
+[[tool.bumpversion.files]]
+filename = ".github/workflows/ci.yml"
+search = 'pip install async-bakalari-api=={current_version}'
+replace = 'pip install async-bakalari-api===={new_version}'

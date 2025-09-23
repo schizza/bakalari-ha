@@ -9,3 +9,11 @@ repos:
     hooks:
       - id: end-of-file-fixer
       - id: trailing-whitespace
+
+  - repo: local
+    hooks:
+      - id: check-versions
+        name: Check version consistency (HA & async-bakalari-api)
+        entry: scripts/validate_version.py
+        language: system
+        pass_filenames: false

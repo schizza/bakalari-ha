@@ -2,7 +2,7 @@ name: Validate (hassfest & HACS)
 
 on:
   push:
-    branches: [main]
+    branches: [ main ]
   pull_request:
 
 jobs:
@@ -10,7 +10,19 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: home-assistant/actions/hassfest@master
+      - name: Get changed files
+        id: changed-files
+        uses: tj-actions/changed-files@v40
+        with:
+          files_ignore: |
+            README.md
+            .gitignore
+            .pre-commit-config.yaml
+          files: custom_components/bakalari/**
+
+      - name: Run hassfest if files changed
+        if: steps.changed-files.outputs.any_changed == 'true'
+        uses: home-assistant/actions/hassfest@master
         with:
           path: custom_components/bakalari
 
