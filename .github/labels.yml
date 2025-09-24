@@ -1,0 +1,82 @@
+labels:
+  # 📦 Typ změny
+  - name: feat
+    color: "1abc9c"
+    description: "Nová funkce / rozšíření integrace"
+  - name: fix
+    color: "e74c3c"
+    description: "Oprava chyby"
+  - name: docs
+    color: "3498db"
+    description: "Dokumentace, README, příklady"
+  - name: refactor
+    color: "9b59b6"
+    description: "Úprava kódu bez změny funkcionality"
+  - name: perf
+    color: "16a085"
+    description: "Optimalizace výkonu"
+  - name: test
+    color: "f39c12"
+    description: "Testy, mocking, coverage"
+  - name: chore
+    color: "95a5a6"
+    description: "Údržba (CI/CD, závislosti, pre-commit)"
+
+  # 🧪 Stav PR/issue
+  - name: wip
+    color: "f1c40f"
+    description: "Work in progress – není připravené na merge"
+  - name: blocked
+    color: "34495e"
+    description: "Blokováno (čeká na review, upstream, závislost)"
+  - name: ready
+    color: "2ecc71"
+    description: "Připraveno k review/merge"
+  - name: needs-info
+    color: "e67e22"
+    description: "Chybí informace od autora / uživatele"
+
+  # 🛠 Priority
+  - name: priority: high
+    color: "c0392b"
+    description: "Kritická chyba / release blocker"
+  - name: priority: medium
+    color: "d35400"
+    description: "Důležité, ale nespěchá"
+  - name: priority: low
+    color: "7f8c8d"
+    description: "Nice-to-have / pozdější řešení"
+
+  # 📂 Domény (Bakaláři-HA specifické)
+  - name: api
+    color: "8e44ad"
+    description: "Týká se Bakaláři API (autentizace, endpointy)"
+  - name: config-flow
+    color: "2980b9"
+    description: "Nastavení integrace v HA (options, UI)"
+  - name: sensor
+    color: "27ae60"
+    description: "Entita / senzor"
+  - name: translations
+    color: "f39c12"
+    description: "Překlady, lokalizace"
+  - name: breaking-change
+    color: "000000"
+    description: "Breaking změna (vyžaduje úpravy v HA configu)"
+
+  # 🤝 Meta
+  - name: discussion
+    color: "3498db"
+    description: "Diskuze / nápad, ne hned issue"
+  - name: help wanted
+    color: "1abc9c"
+    description: "Hledá se příspěvek od komunity"
+  - name: good first issue
+    color: "2ecc71"
+    description: "Jednoduchá issue pro začátečníky"
+  - name: duplicate
+    color: "95a5a6"
+    description: "Duplicitní issue"
+  - name: invalid
+    color: "7f8c8d"
+    description: "Není validní (chybný report, ne bug)"
