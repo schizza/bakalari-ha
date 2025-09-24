@@ -1,0 +1,19 @@
+# .github/workflows/sync-labels.yml
+name: Sync labels
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - .github/labels.yml
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: crazy-max/ghaction-github-labeler@v5
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          yaml-file: .github/labels.yml
+          prune: true   # smaže labely, co nejsou v YAML
