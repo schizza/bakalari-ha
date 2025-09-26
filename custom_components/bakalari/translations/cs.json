@@ -1,0 +1,28 @@
+{
+  "title": "Bakaláři - Integrace pro Home Assistant",
+  "config": {
+    "error": {
+      "loading_failed": "Nepodařilo se načíst školy z serveru ani s cache!"
+    },
+    "step": {
+      "user": {
+        "title": "Bakaláři - Integrace pro Home Assistant"
+      },
+      "select_city": {
+        "title": "Vyberte město",
+        "data": {
+          "city": "Město"
+        }
+      },
+      "select_school": {
+        "title": "Vyberte školu",
+        "data": {
+          "school": "Škola"
+        }
+      }
+    },
+    "progress": {
+      "loading_schools": "Načítání seznamu škol, prosím čekejte..."
+    }
+  }
+}

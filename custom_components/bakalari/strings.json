@@ -1,0 +1,13 @@
+{
+  "title": "Bakaláři - Integrace pro Home Assistant",
+  "config": {
+    "step": {
+      "user": {
+        "title": "Bakaláři - Integrace pro Home Assistant"
+      }
+    },
+    "progress": {
+      "loading_schools": "Načítání seznamu škol, prosím čekejte..."
+    }
+  }
+}

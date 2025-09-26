@@ -14,6 +14,6 @@ repos:
     hooks:
       - id: check-versions
         name: Check version consistency (HA & async-bakalari-api)
-        entry: scripts/validate_version.py
+        entry: script/validate_version.py
         language: system
         pass_filenames: false
