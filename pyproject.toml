@@ -13,6 +13,17 @@ filterwarnings = [
   "ignore::DeprecationWarning"
 ]
 
+[tool.setuptools.packages.find]
+include = [
+  "custom_components.bakalari",
+  "custom_components.bakalari.*",
+]
+exclude = [
+  "script",
+  "script.*",
+  "tests",
+  "tests.*",
+]
 [tool.ruff.lint.isort]
 known-first-party = ["custom_components.bakalari"]
 
