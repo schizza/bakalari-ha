@@ -1,14 +1,13 @@
 {
+  "domain": "bakalari",
+  "name": "Bakaláři HA",
   "codeowners": ["@schizza"],
   "config_flow": true,
-  "diagnostics": true,
   "documentation": "https://github.com/schizza/bakalari-ha",
-  "domain": "bakalari",
   "integration_type": "hub",
   "iot_class": "cloud_polling",
   "issue_tracker": "https://github.com/schizza/bakalari-ha/issues",
-  "loggers": ["custom_components.bakalari"],
-  "name": "Bakaláři HA",
-  "requirements": ["async-bakalari-api==0.3.6"],
+  "loggers": ["custom_components.bakalari", "Bakalari API"],
+  "requirements": ["async-bakalari-api==0.3.7"],
   "version": "0.0.1"
 }
