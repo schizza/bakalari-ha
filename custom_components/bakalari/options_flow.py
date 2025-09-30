@@ -31,7 +31,7 @@ class BakalariOptionsFlow(config_entries.OptionsFlow):
 
         # Import schools from cache as we should have them from initial setup
         schools_store = Store(self.hass, 1, SCHOOLS_CACHE_FILE)
-        schools_cache = await schools_store.async_load()
+        schools_cache = await schools_store.async_load() or []
 
         _schools_cache = Schools()
 
@@ -108,7 +108,7 @@ class BakalariOptionsFlow(config_entries.OptionsFlow):
         data_schema = vol.Schema({vol.Required("school"): vol.In(_schools)})
 
         if user_input is not None:
-            self._new_child["school"] = user_input["school"]
+            self._new_child["school"] = user_input["school"]  # pyright: ignore[reportOptionalSubscript]
 
             return await self.async_step_login()
 
@@ -128,14 +128,14 @@ class BakalariOptionsFlow(config_entries.OptionsFlow):
 
         # we have login data
         if user_input is not None:
-            school_url = self._schools.get_url(self._new_child["school"])
+            school_url = self._schools.get_url(self._new_child["school"])  # pyright: ignore[reportOptionalSubscript]
 
             api = Bakalari(school_url)
 
             try:
                 credentials = await api.first_login(user_input["username"], user_input["password"])
 
-                self._new_child["credentials"] = credentials
+                self._new_child["credentials"] = credentials  # pyright: ignore[reportOptionalSubscript]
 
             except Ex.InvalidLogin:
                 return self.async_show_form(
