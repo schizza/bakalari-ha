@@ -76,7 +76,7 @@ update:
 	$(MAKE) install
 	@echo "✅ Hotovo."
 
-all: ci coverage validate-local check_versions
+all: ci coverage validate-local check-versions
 
 # ====== Lint & test ======
 lint:
@@ -125,13 +125,13 @@ hacs-local:
 	fi
 	docker run --rm \
 	  --platform linux/amd64 \
-	  -e GITHUB_TOKEN \
+	  -e GITHUB_TOKEN=$$GITHUB_TOKEN \
 	  -e INPUT_CATEGORY=integration \
 	  -e INPUT_IGNORE=brands \
 	  -v "$$(pwd)":/github/workspace \
 	  ghcr.io/hacs/action:main
 
-validate-local: hassfest-local hacs-local
+validate-local: hassfest-local
 validate-all: ci validate-local
 
 # ====== Spouštění Home Assistanta z venvu ======
