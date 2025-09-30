@@ -7,7 +7,7 @@
   "integration_type": "hub",
   "iot_class": "cloud_polling",
   "issue_tracker": "https://github.com/schizza/bakalari-ha/issues",
-  "loggers": ["custom_components.bakalari"],
+  "loggers": ["custom_components.bakalari", "Bakalari API"],
   "requirements": ["async-bakalari-api==0.3.7"],
   "version": "0.0.1"
 }

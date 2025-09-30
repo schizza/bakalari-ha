@@ -4,6 +4,6 @@ from typing import Final
 
 DOMAIN = "bakalari"
 
-PLATFORMS = ["sensor"]
+PLATFORMS = []
 
 SCHOOLS_CACHE_FILE: Final = "schools_cache.json"
