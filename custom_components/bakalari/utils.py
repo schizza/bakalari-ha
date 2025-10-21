@@ -55,7 +55,7 @@ def child_from_raw(raw: dict[str, Any] | None) -> tuple[str, ChildRecord]:
         refresh_token = creds.get(CONF_REFRESH_TOKEN)
 
     if not child_id:
-        # fallback – nemělo by nastat
+        # fallback – should not happen
         child_id = f"child_{uuid.uuid4().hex[:8]}"
 
     child: ChildRecord = {
