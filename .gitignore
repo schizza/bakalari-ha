@@ -209,3 +209,5 @@ __marimo__/
 .DS_Store
 
 .ha-core
+
+.zed/debug.json
