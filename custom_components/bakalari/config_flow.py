@@ -31,14 +31,15 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     async def _load_schools(self) -> bool:
         """Load schools from cache or fetch new ones from server."""
 
-        api = Bakalari()
-
         schools_storage = Store(self.hass, 1, SCHOOLS_CACHE_FILE)
         schools_cache = await schools_storage.async_load()
 
         if schools_cache is None:
             _LOGGER.debug("Fetching new schools from server ")
-            schools_cache = await api.schools_list()
+
+            async with Bakalari() as api:
+                schools_cache = await api.schools_list()
+
             if schools_cache is None:
                 _LOGGER.error("Schools cannot be fetched from server!")
                 return False
