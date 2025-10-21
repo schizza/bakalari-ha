@@ -87,11 +87,11 @@ def children_list_to_dict(raw_list: list[dict[str, Any]] | None) -> ChildrenMap:
 
 
 def ensure_children_dict(obj: Any) -> ChildrenMap:
-    """Accept Any and return ChildrenMap.
+    """Accept any object and return a ChildrenMap.
 
-    - pokud je to dict: normalizuje/validuje každé dítě.
-    - pokud je to list: převede na dict dle user_id
-    - jinak vrací prázdný dict.
+    - If it's a dict: normalizes/validates each child.
+    - If it's a list: converts to dict by user_id.
+    - Otherwise returns an empty dict.
     """
 
     if isinstance(obj, dict):
