@@ -126,7 +126,7 @@ class BakalariClient:
         if not self._tokens_changed():
             return
 
-        # tokens changed, use globle lock to avoid race conditions
+        # tokens changed, use global lock to avoid race conditions
         async with _entry_update_lock:
             if not self._tokens_changed():
                 return
