@@ -216,7 +216,7 @@ class BakalariOptionsFlow(config_entries.OptionsFlow):
         )
 
         if user_input is not None:
-            # Aktualizace hodnot
+            # Update values
             child[CONF_NAME] = user_input[CONF_NAME]
             child[CONF_SURNAME] = user_input[CONF_SURNAME]
             child[CONF_SCHOOL] = child.get(CONF_SCHOOL) if not user_input.get(school_label) else ""
