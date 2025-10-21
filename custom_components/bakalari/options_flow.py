@@ -79,7 +79,7 @@ class BakalariOptionsFlow(config_entries.OptionsFlow):
         return self.async_show_form(step_id="init", data_schema=data_schema)
 
     async def async_step_select_child_to_edit(self, user_input=None):
-        """Step delete child."""
+        """Step to select child for editing."""
 
         options = {
             cid: f"{child.get(CONF_NAME, '')} {child.get(CONF_SURNAME, '')}".strip()
