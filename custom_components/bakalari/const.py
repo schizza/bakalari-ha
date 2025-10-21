@@ -34,4 +34,4 @@ class ChildRecord(TypedDict, total=False):
 ChildrenMap = dict[str, ChildRecord]
 
 SCHOOLS_CACHE_FILE: Final = "schools_cache.json"
-RATE_LIMIT_EXCEEDED: Final = "Pokud server vrací chybu `Connection error` možná jste překročili limit požadavků. Zkuste to později nebo zvyště čas dotazování."
+RATE_LIMIT_EXCEEDED: Final = "If the server returns a `Connection error`, you may have exceeded the request limit. Try again later or increase the polling interval."
