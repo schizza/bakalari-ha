@@ -11,7 +11,7 @@ PYTEST := $(PYTHON) -m pytest
 
 # Verze / cesty
 HA_VERSION := 2025.9.4
-BAKALARI_VERSION := 0.3.7
+BAKALARI_VERSION := 0.4.0
 HA_CONFIG := ./config
 COMPONENT_PATH := custom_components/bakalari
 
@@ -34,24 +34,26 @@ export PYTHONDONTWRITEBYTECODE=1
 
 help:
 	@echo "Použití:"
-	@echo "  make venv              - vytvoří .venv"
-	@echo "  make install           - nainstaluje závislosti (stable HA $(HA_VERSION))"
-	@echo "  make update            - smaže .venv a nainstaluje znovu"
-	@echo "  make all               - spustí všecny potřebné testy"
-	@echo "  make lint              - ruff check + format check"
-	@echo "  make fmt               - ruff format"
-	@echo "  make fix               - ruff check --fix"
-	@echo "  make test              - pytest (tiché -q)"
-	@echo "  make coverage          - pytest s coverage"
-	@echo "  make ci                - lint + test"
-	@echo "  make run               - spustí HA z .venv (config: $(HA_CONFIG))"
-	@echo "  make run-debug         - spustí HA s --debug"
-	@echo "  make run-no-cache      - spustí HA s --skip-pip (rychlé iterace)"
-	@echo "  make hassfest-local    - spustí hassfest na $(COMPONENT_PATH)"
-	@echo "  make hacs-local        - HACS validace na $(COMPONENT_PATH)"
-	@echo "  make validate-local    - hassfest + HACS"
-	@echo "  make clean             - smaže cache (pytest/ruff/build)"
-	@echo "  make distclean         - clean + smaže .venv a .ha-core"
+	@echo "  make venv                            - vytvoří .venv"
+	@echo "  make install                         - nainstaluje závislosti (stable HA $(HA_VERSION))"
+	@echo "  make update                          - smaže .venv a nainstaluje znovu"
+	@echo "  make bump-ha NEW=<version>           - zvýší verzi HA"
+	@echo "  make bump-bakalari NEW=<version>     - zvýší verzi bakaláře"
+	@echo "  make all                             - spustí všecny potřebné testy"
+	@echo "  make lint                            - ruff check + format check"
+	@echo "  make fmt                             - ruff format"
+	@echo "  make fix                             - ruff check --fix"
+	@echo "  make test                            - pytest (tiché -q)"
+	@echo "  make coverage                        - pytest s coverage"
+	@echo "  make ci                              - lint + test"
+	@echo "  make run                             - spustí HA z .venv (config: $(HA_CONFIG))"
+	@echo "  make run-debug                       - spustí HA s --debug"
+	@echo "  make run-no-cache                    - spustí HA s --skip-pip (rychlé iterace)"
+	@echo "  make hassfest-local                  - spustí hassfest na $(COMPONENT_PATH)"
+	@echo "  make hacs-local                      - HACS validace na $(COMPONENT_PATH)"
+	@echo "  make validate-local                  - hassfest + HACS"
+	@echo "  make clean                           - smaže cache (pytest/ruff/build)"
+	@echo "  make distclean                       - clean + smaže .venv a .ha-core"
 
 # ====== Venv & instalace ======
 venv:
