@@ -292,7 +292,7 @@ class BakalariCard extends HTMLElement {
         const open = this._open.has(id) ? " open" : "";
         const attachments = Array.isArray(m.attachments) ? m.attachments : [];
 
-        // ↓↓↓ NOVÉ: bezpečné HTML, jinak linkify textu
+        // NEW: safe HTML, otherwise linkify text
         const textHtml = this._config.allow_html
           ? this._sanitize(m.html ?? m.text ?? "")
           : this._linkify(m.text || "");
