@@ -234,7 +234,7 @@ class BakalariCard extends HTMLElement {
         return;
       }
 
-      // samouzavírací BR
+      // self-closing BR
       if (tag === "BR") {
         out.push("<br>");
         return;
