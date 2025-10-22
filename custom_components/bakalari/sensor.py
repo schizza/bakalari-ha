@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import timedelta
 import logging
 
 from async_bakalari_api.komens import MessageContainer
@@ -18,6 +19,7 @@ from .utils import ensure_children_dict, redact_child_info
 _LOGGER = logging.getLogger(__name__)
 
 PARALLEL_UPDATES = 1
+SCAN_INTERVAL = timedelta(minutes=10)
 
 
 async def async_setup_entry(
