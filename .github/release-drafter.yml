@@ -39,7 +39,9 @@ categories:
   - title: "CHANGES_TESTS"
     labels: ["test", "tests"]
 
-change-template: "- $TITLE by @$AUTHOR in #$NUMBER"
+change-template: |
+  - $TITLE by @$AUTHOR in #$NUMBER
+    $BODY
 change-title-escapes: "\\<*_&"
 
 exclude-labels:
