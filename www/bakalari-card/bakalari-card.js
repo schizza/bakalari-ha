@@ -98,7 +98,7 @@ class BakalariCard extends HTMLElement {
         </div>
       </ha-card>
     `;
-    // Delegovaný listener – žádné inline onclick
+    // Delegated listener – no inline onclick
     this._root.addEventListener("click", (e) => {
       const path = e.composedPath ? e.composedPath() : [];
       const row = path.find((el) => el?.classList?.contains?.("row"));
