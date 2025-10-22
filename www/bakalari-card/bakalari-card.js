@@ -245,7 +245,7 @@ class BakalariCard extends HTMLElement {
       out.push(`</${tag.toLowerCase()}>`);
     };
 
-    // vezmeme jen body
+    // take only the body
     doc.body.childNodes.forEach(walk);
     return out.join("");
   }
