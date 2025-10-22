@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ["3.12"]
+        python-version: ["3.13"]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -23,7 +23,7 @@ jobs:
           pip install -e .
           # HA runtime pro testy (minimální):
           pip install homeassistant==2025.9.4
-          pip install async-bakalari-api==0.3.7
+          pip install async-bakalari-api==0.4.0
       - name: Ruff (lint)
         run: ruff check .
       - name: Tests

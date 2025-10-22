@@ -1,5 +1,5 @@
 [tool.bumpversion]
-current_version = "0.3.7"
+current_version = "0.4.0"
 commit = false
 tag = false
 
@@ -21,4 +21,4 @@ replace = '- PyPI: `async-bakalari-api=={new_version}`'
 [[tool.bumpversion.files]]
 filename = ".github/workflows/ci.yml"
 search = 'pip install async-bakalari-api=={current_version}'
-replace = 'pip install async-bakalari-api===={new_version}'
+replace = 'pip install async-bakalari-api=={new_version}'
