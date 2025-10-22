@@ -215,7 +215,7 @@ class BakalariCard extends HTMLElement {
 
       const tag = node.tagName;
       if (!allowedTags.has(tag)) {
-        // nepovolený element – renderuj jen text uvnitř
+        // Disallowed element – render only text inside
         node.childNodes.forEach(walk);
         return;
       }
