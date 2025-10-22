@@ -184,7 +184,7 @@ class BakalariCard extends HTMLElement {
   }
 
   _sanitize(html) {
-    // bezpečná rekonstrukce jen povolených tagů
+    // Safe reconstruction of allowed tags only
     const allowedTags = new Set([
       "B",
       "STRONG",
