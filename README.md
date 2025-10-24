@@ -17,20 +17,16 @@ Custom komponenta pro Home Assistant, založená na [async-bakalari-api3](https:
 ## Senzor
 
 - Zprávy
-  - tento senzro stahuje zprávy za poslední měsíc
+  - tento senzor stahuje zprávy za poslední měsíc
 
-## Přidání karty na dashboard
+## Karty pro Lovelace jsou nyní instalovány přes HACS ve vlastím [repozitáři](https://github.com/schizza/bakalari-ha-frontend).
 
-- v repozitáři stáhněte soubor [bakalari-card.js](https://raw.githubusercontent.com/schizza/bakalari-ha/refs/heads/dev/www/bakalari-card/bakalari-card.js) a umístěte ho do `config/www/bakalari-card/`
-- v `Nastavení` -> `Ovládací panely` vyberte vpravo nahoře `⋮` -> `Zdroje`
-- Následně `Přidat zdroj`, jako cesta se použije `/local/bakalari-card/bakalari-card.js` a musí být vybraný `Modul JavaScriptu`
-- pak lze na dashboard přidat vlastní kartu `Bakalari` s náledujícím nastavením:
-
-```yaml
-type: custom:bakalari-card
-entity: sensor.bakalari_zpravy_jmeno_ditete
-title: 📬 Zprávy pro SuperDítě
-```
+- v HACS přidej repozitář `https://github.com/schizza/bakalari-ha-frontend`
+  - typ: `Ovládací panel`
+  - nainstaluj poslední verzi
+  - pak lze do Lovelace přidat vlastní kartu dle požadovaného typu
+    - Zprávy `type: custom:bakalari-messages-card`
+  - více informací o kartách najdete v [repozitáři](https://github.com/schizza/bakalari-ha-frontend)
 
 ## Požadavky
 
