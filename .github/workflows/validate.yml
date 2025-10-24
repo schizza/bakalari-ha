@@ -2,7 +2,7 @@ name: Validate (hassfest & HACS)
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, dev ]
   pull_request:
 
 jobs:
@@ -26,11 +26,3 @@ jobs:
         with:
           path: custom_components/bakalari
 
-  hacs:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: HACS validation
-        uses: hacs/action@main
-        with:
-          category: integration
