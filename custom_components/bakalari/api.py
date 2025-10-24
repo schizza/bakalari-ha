@@ -8,7 +8,7 @@ from datetime import datetime
 import logging
 from typing import Any
 
-from async_bakalari_api import Bakalari, Komens, Marks
+from async_bakalari_api import Bakalari, Komens, Marks, Timetable
 from async_bakalari_api.datastructure import Credentials
 from async_bakalari_api.komens import MessageContainer, Messages
 from async_bakalari_api.marks import SubjectsBase
@@ -185,6 +185,27 @@ class BakalariClient:
                 lib.credentials.username,
             )
             return data
+
+    async def async_get_timetable(self):
+        """Fetch timetable."""
+
+        lib = await self._is_lib()
+        timetable = Timetable(lib)
+
+        async with _fetch_lock:
+            try:
+                data = await timetable.fetch_permanent()
+            except Exception as e:
+                _LOGGER.error("Failed to fetch timetable from Bakalari API: %s", str(e))
+                _LOGGER.error(RATE_LIMIT_EXCEEDED)
+                data = []
+
+        await self._save_tokens_if_changed()
+
+        # data = await timetable.get_timetable()
+        # return data
+        # For now, just return an empty dict or placeholder
+        return data
 
     async def async_get_marks(self) -> list[SubjectsBase]:
         """Get marks from Bakalari API."""

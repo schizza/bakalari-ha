@@ -89,4 +89,5 @@ class BakalariMessagesSensor(SensorEntity):
             getattr(self._client, "child_id", None),
             len(data) if data is not None else None,
         )
+        await self._client.async_get_timetable()
         self._messages = messages
