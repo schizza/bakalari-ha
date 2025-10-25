@@ -4,7 +4,7 @@ This module provides an interface to interact with the Bakalari ASYNC API.
 """
 
 import asyncio
-from datetime import datetime
+from datetime import date, datetime
 import logging
 from typing import Any
 
@@ -12,6 +12,7 @@ from async_bakalari_api import Bakalari, Komens, Marks, Timetable
 from async_bakalari_api.datastructure import Credentials
 from async_bakalari_api.komens import MessageContainer, Messages
 from async_bakalari_api.marks import SubjectsBase
+from async_bakalari_api.timetable import TimetableWeek
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 
@@ -141,7 +142,7 @@ class BakalariClient:
             self.hass.config_entries.async_update_entry(
                 entry, options={**entry.options, CONF_CHILDREN: new_children}
             )
-            self._last_tokens = (cred.access_token, cred.refresh_token)
+            self._last_tokens = (cred.access_token or "", cred.refresh_token or "")
             _LOGGER.warning(
                 "Bakalari instance saved tokens on change for child_id=%s (user_id from credentials=%s). With parameters: %s",
                 self.child_id,
@@ -186,25 +187,22 @@ class BakalariClient:
             )
             return data
 
-    async def async_get_timetable(self):
+    async def async_get_timetable_permanent(self) -> TimetableWeek:
         """Fetch timetable."""
 
-        lib = await self._is_lib()
-        timetable = Timetable(lib)
+        lib: Bakalari = await self._is_lib()
 
         async with _fetch_lock:
             try:
-                data = await timetable.fetch_permanent()
+                async with Timetable(bakalari=lib) as timetable:
+                    data: TimetableWeek = await timetable.fetch_permanent()
             except Exception as e:
                 _LOGGER.error("Failed to fetch timetable from Bakalari API: %s", str(e))
                 _LOGGER.error(RATE_LIMIT_EXCEEDED)
-                data = []
+                data: TimetableWeek = []
 
         await self._save_tokens_if_changed()
 
-        # data = await timetable.get_timetable()
-        # return data
-        # For now, just return an empty dict or placeholder
         return data
 
     async def async_get_marks(self) -> list[SubjectsBase]:
@@ -221,4 +219,26 @@ class BakalariClient:
         # data = await marks.get_marks()
         # return data
         # For now, just return an empty dict or placeholder
+        return data
+
+    async def async_get_timetable_actual(
+        self, for_date: datetime | date | None = None
+    ) -> TimetableWeek:
+        """Fetch actual timetable for a specific date.
+
+        If for_date is None, the API will default to today.
+        """
+        lib: Bakalari = await self._is_lib()
+
+        async with _fetch_lock:
+            try:
+                async with Timetable(bakalari=lib) as timetable:
+                    data: TimetableWeek = await timetable.fetch_actual(for_date=for_date)
+            except Exception as e:
+                _LOGGER.error("Failed to fetch actual timetable from Bakalari API: %s", str(e))
+                _LOGGER.error(RATE_LIMIT_EXCEEDED)
+                data: TimetableWeek = []
+
+        await self._save_tokens_if_changed()
+
         return data
