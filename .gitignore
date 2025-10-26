@@ -211,3 +211,5 @@ __marimo__/
 .ha-core
 
 .zed/debug.json
+
+.zed/settings.json
