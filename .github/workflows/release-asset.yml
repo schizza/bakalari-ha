@@ -12,7 +12,8 @@ jobs:
       - name: Create ZIP
         run: |
           mkdir -p dist
-          zip -r dist/bakalari-ha.zip custom_components/bakalari -x "*/__pycache__/*"
+          cd custom_components/bakalari
+          zip -r ../../dist/bakalari-ha.zip . -x "*/__pycache__/*"
 
       - name: Upload ZIP to release
         uses: softprops/action-gh-release@v2
