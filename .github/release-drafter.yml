@@ -1,87 +1,56 @@
-name-template: "v$NEXT_VERSION"
-tag-template: "v$NEXT_VERSION"
+name-template: 'v$RESOLVED_VERSION'
+tag-template: 'v$RESOLVED_VERSION'
 
-template: |
-  ## ✨ Nové funkce
-  $CHANGES_SEMVER_MINOR
-
-  ## 🐛 Opravy chyb
-  $CHANGES_SEMVER_PATCH
-
-  ## 🧹 Refaktoring / Údržba
-  $CHANGES_MAINTENANCE
-
-  ## 📝 Dokumentace
-  $CHANGES_DOCS
-
-  ## 🧪 Testy
-  $CHANGES_TESTS
-
-  ## ⚠️ Breaking changes
-  $BREAKING_CHANGES
-
-  ## 🔄 Migration
-  $MIGRATION
-
-  ## 📦 Technické
-  - Verze integrace: `$NEXT_VERSION`
-  - Minimální verze Home Assistant: `2024.8.0`
-
-categories:
-  - title: "CHANGES_SEMVER_MINOR"
-    labels: ["feature", "enhancement", "feat"]
-  - title: "CHANGES_SEMVER_PATCH"
-    labels: ["bug", "fix", "bugfix"]
-  - title: "CHANGES_MAINTENANCE"
-    labels: ["refactor", "chore", "maintenance"]
-  - title: "CHANGES_DOCS"
-    labels: ["docs", "documentation"]
-  - title: "CHANGES_TESTS"
-    labels: ["test", "tests"]
-
-change-template: |
-  - $TITLE by @$AUTHOR in #$NUMBER
-    $BODY
-change-title-escapes: "\\<*_&"
-
-exclude-labels:
-  - "skip-changelog"
+commitish: dev
+filter-by-commitish: true
 
 version-resolver:
   major:
-    labels:
-      - breaking
+    labels: ['breaking-change', 'semver:major']
   minor:
-    labels:
-      - feature
-      - enhancement
-      - feat
+    labels: ['feature', 'feat', 'enhancement', 'semver:minor']
   patch:
-    labels:
-      - fix
-      - bug
-      - bugfix
-      - docs
-      - documentation
-      - chore
-      - refactor
-      - maintenance
-      - test
-      - tests
+    labels: ['bug', 'fix', 'chore', 'refactor', 'docs', 'test', 'semver:patch']
   default: patch
 
-replacers:
-  - search: "\\$CHANGES_SEMVER_MINOR\\n"
-    replace: "_Žádné._\n"
-  - search: "\\$CHANGES_SEMVER_PATCH\\n"
-    replace: "_Žádné._\n"
-  - search: "\\$CHANGES_MAINTENANCE\\n"
-    replace: "_Žádné._\n"
-  - search: "\\$CHANGES_DOCS\\n"
-    replace: "_Žádné._\n"
-  - search: "\\$CHANGES_TESTS\\n"
-    replace: "_Žádné._\n"
-  - search: "\\$BREAKING_CHANGES"
-    replace: "_Žádné._"
-  - search: "\\$MIGRATION"
-    replace: "_Není potřeba._"
+# Kategorie v češtině (hlavičky se vygenerují automaticky)
+categories:
+  - title: '✨ Nové funkce'
+    labels: ['feature', 'feat', 'enhancement']
+  - title: '🐛 Opravy chyb'
+    labels: ['bug', 'fix']
+  - title: '🧹 Refaktoring / Údržba'
+    labels: ['refactor', 'chore', 'maintenance']
+  - title: '📝 Dokumentace'
+    labels: ['docs', 'documentation']
+  - title: '🧪 Testy'
+    labels: ['test', 'tests']
+  - title: '⚠️ Breaking changes'
+    labels: ['breaking-change', 'semver:major']
+
+change-template: |
+  - $TITLE (#$NUMBER) @$AUTHOR
+    <details>
+    <summary>Detail</summary>
+
+    $BODY
+
+    </details>
+change-title-escapes: '\<*_&'
+
+exclude-labels:
+  - 'skip-changelog'
+
+header: |
+  ## Co je nového
+
+template: |
+  $CHANGES
+
+footer: |
+  ---
+  ## 📦 Technické
+  - Verze integrace: `v$RESOLVED_VERSION`
+  - Minimální verze Home Assistant: `2025.9+`
+  - Předchozí tag: `$PREVIOUS_TAG`
+  - Autoři přispěli: $CONTRIBUTORS

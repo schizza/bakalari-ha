@@ -16,9 +16,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
       - name: Update draft release for main
         uses: release-drafter/release-drafter@v6
         with:
           config-name: release-drafter.yml
+          commitish: ${{ github.event.pull_request.base.ref || 'main' }}
+          filter-by-commitish: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

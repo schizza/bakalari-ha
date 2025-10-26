@@ -25,4 +25,3 @@ jobs:
         uses: home-assistant/actions/hassfest@master
         with:
           path: custom_components/bakalari
-
