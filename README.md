@@ -35,7 +35,7 @@ Custom komponenta pro Home Assistant, založená na [async-bakalari-api3](https:
 
 ## Screenshot
 
-![Screenshot](https://raw.githubusercontent.com/schizza/Bakalari-ha-frontend/refs/heads/main/docs/screenshot.png)
+![Screenshot](https://raw.githubusercontent.com/schizza/bakalari-ha-frontend/refs/heads/main/docs/screenshot.png)
 
 ## Požadavky
 
