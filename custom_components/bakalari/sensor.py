@@ -10,6 +10,7 @@ from homeassistant import config_entries
 from homeassistant.components.sensor import SensorEntity
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.util import dt
 import orjson
 
 from .api import BakalariClient
@@ -134,12 +135,11 @@ class BakalariTimetableSensor(SensorEntity):
             self._child_id,
             getattr(self._client, "child_id", None),
         )
-        data = await self._client.async_get_timetable_actual()
-        try:
-            if hasattr(data, "as_json"):
-                self._timetable = orjson.loads(data.as_json())
-            else:
-                self._timetable = data
-        except Exception as e:
-            _LOGGER.error("Failed to parse timetable: %s", e)
-            self._timetable = None
+        today = dt.now().date()
+        dates = [today - timedelta(weeks=-1), today, today + timedelta(weeks=1)]
+        weeks = []
+        for d in dates:
+            w = await self._client.async_get_timetable_actual(d)
+            weeks.append(w)
+
+        self._timetable = weeks
