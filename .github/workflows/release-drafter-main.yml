@@ -23,5 +23,7 @@ jobs:
         uses: release-drafter/release-drafter@v6
         with:
           config-name: release-drafter.yml
+          commitish: ${{ github.event.pull_request.base.ref || 'main' }}
+          filter-by-commitish: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
