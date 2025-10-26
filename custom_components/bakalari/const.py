@@ -4,7 +4,7 @@ from typing import Final, NotRequired, Required, TypedDict
 
 DOMAIN = "bakalari"
 
-PLATFORMS = ["sensor"]
+PLATFORMS = ["sensor", "calendar"]
 
 CONF_CHILDREN: Final = "children"
 CONF_CREDENTIALS: Final = "credentials"
