@@ -1,0 +1,36 @@
+name: Update Changelog
+
+on:
+  release:
+    types: [released]
+
+permissions:
+  contents: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout target branch of the release
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.release.target_commitish }}
+
+      - name: Update CHANGELOG.md from release notes
+        uses: stefanzweifel/changelog-updater-action@v1
+        with:
+          latest-version: ${{ github.event.release.tag_name }}
+          release-notes: ${{ github.event.release.body }}
+          path-to-changelog: CHANGELOG.md
+
+      - name: Create PR with CHANGELOG.md
+        uses: peter-evans/create-pull-request@v6
+        with:
+          commit-message: "docs(changelog): update for ${{ github.event.release.tag_name }}"
+          title: "docs(changelog): update for ${{ github.event.release.tag_name }}"
+          body: "Automatická aktualizace changelogu po releasu."
+          branch: chore/changelog-${{ github.event.release.tag_name }}
+          base: ${{ github.event.release.target_commitish }}
+          labels: docs, chore
+          signoff: true
+          delete-branch: true
