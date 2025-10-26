@@ -21,6 +21,9 @@ Custom komponenta pro Home Assistant, založená na [async-bakalari-api3](https:
 - Zprávy
   - tento senzor stahuje zprávy za poslední měsíc
 
+- Rozvrh
+  - tento senzor stahuje rozvrh na aktuální týden +- 7 dní
+
 ## Karty pro Lovelace jsou nyní instalovány přes HACS ve vlastím [repozitáři](https://github.com/schizza/bakalari-ha-frontend).
 
 - v HACS přidej repozitář `https://github.com/schizza/bakalari-ha-frontend`
@@ -29,6 +32,10 @@ Custom komponenta pro Home Assistant, založená na [async-bakalari-api3](https:
   - pak lze do Lovelace přidat vlastní kartu dle požadovaného typu
     - Zprávy `type: custom:bakalari-messages-card`
   - více informací o kartách najdete v [repozitáři](https://github.com/schizza/bakalari-ha-frontend)
+
+## Screenshot
+
+![Screenshot](https://raw.githubusercontent.com/schizza/bakalari-ha-frontend/refs/heads/main/docs/screenshot.png)
 
 ## Požadavky
 
