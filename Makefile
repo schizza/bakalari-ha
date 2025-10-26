@@ -11,7 +11,7 @@ PYTEST := $(PYTHON) -m pytest
 
 # Verze / cesty
 HA_VERSION := 2025.9.4
-BAKALARI_VERSION := 0.4.0
+BAKALARI_VERSION := 0.5.0
 HA_CONFIG := ./config
 COMPONENT_PATH := custom_components/bakalari
 
@@ -39,6 +39,7 @@ help:
 	@echo "  make update                          - smaže .venv a nainstaluje znovu"
 	@echo "  make bump-ha NEW=<version>           - zvýší verzi HA"
 	@echo "  make bump-bakalari NEW=<version>     - zvýší verzi bakaláře"
+	@echo "  make bump-version NEW=<version>      - zvýší verzi balíčku"
 	@echo "  make all                             - spustí všecny potřebné testy"
 	@echo "  make lint                            - ruff check + format check"
 	@echo "  make fmt                             - ruff format"
@@ -164,6 +165,9 @@ bump-ha:
 bump-bakalari:
 	@if [ -z "$(NEW)" ]; then echo "Použití: make bump-bakalari NEW=<verze>"; exit 1; fi
 	bump-my-version bump --allow-dirty --no-commit --config-file ./bump-bakalari.toml --current-version "$$(tomlq -f ./bump-bakalari.toml '.tool.bumpversion.current_version' 2>/dev/null || sed -n "s/^current_version = \"\(.*\)\"/\1/p" ./bump-bakalari.toml | head -1)" --new-version "$(NEW)"
+bump-version:
+	@if [ -z "$(NEW)" ]; then echo "Použití: make bump-version NEW=<verze>"; exit 1; fi
+	bump-my-version bump --allow-dirty --no-commit --config-file ./bump-version.toml --current-version "$$(tomlq -f ./bump-version.toml '.tool.bumpversion.current_version' 2>/dev/null || sed -n "s/^current_version = \"\(.*\)\"/\1/p" ./bump-version.toml | head -1)" --new-version "$(NEW)"
 
 check-versions:
 	@echo "🔍 Kontrola konzistence verzí..."

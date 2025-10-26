@@ -1,7 +1,7 @@
 {
   "name": "Bakaláři HA",
   "country": "CZ",
-  "filename": "bakalari-ha.zip"
+  "filename": "bakalari-ha.zip",
   "render_readme": true,
   "homeassistant": "2025.9.4",
   "zip_release": true
