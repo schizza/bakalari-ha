@@ -21,8 +21,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0       
-          fetch-tags: true    
+          fetch-depth: 0
+          fetch-tags: true
       - name: Update draft release for dev
         uses: release-drafter/release-drafter@v6
         with:

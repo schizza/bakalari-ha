@@ -1,0 +1,16 @@
+[tool.bumpversion]
+current_version = "0.1.0"
+commit = false
+tag = false
+
+[[tool.bumpversion.files]]
+filename = "custom_components/bakalari/manifest.json"
+search = '"version": "{current_version}"
+replace = '"version": "{new_version}"
+
+
+[[tool.bumpversion.files]]
+filename = "pyproject.toml"
+search = 'version = "{current_version}"'
+replace = 'version = "{new_version}"'
+no-regex = true
