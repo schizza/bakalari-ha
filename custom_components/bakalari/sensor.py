@@ -136,7 +136,7 @@ class BakalariTimetableSensor(SensorEntity):
             getattr(self._client, "child_id", None),
         )
         today = dt.now().date()
-        dates = [today - timedelta(weeks=-1), today, today + timedelta(weeks=1)]
+        dates = [today, today + timedelta(weeks=1), today - timedelta(weeks=1)]
         weeks = []
         for d in dates:
             w = await self._client.async_get_timetable_actual(d)
