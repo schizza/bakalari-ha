@@ -20,3 +20,9 @@ filename = ".github/workflows/ci.yml"
 search = 'pip install homeassistant=={current_version}'
 replace = 'pip install homeassistant=={new_version}'
 no-regex = true
+
+[[tool.bumpversion.files]]
+filename = "custom_components/bakalari/const.py"
+search = 'API_VERSION: Final = "{current_version}"'
+replace = 'API_VERSION: Final = "{new_version}"'
+no-regex = true

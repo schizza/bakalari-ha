@@ -23,10 +23,12 @@ FILES = {
             r'"async-bakalari-api==([0-9][^"]+)"',
         ),
         (ROOT / "README.md", r"async-bakalari-api==([0-9][^\s#]+)\`"),
+        (ROOT / "custom_components/bakalari/const.py", r"API_VERSION: Final = \"([0-9][^\s#]+)\""),
     ],
     "library": [
         (ROOT / "custom_components/bakalari/manifest.json", r"\"version\":\s*\"([0-9][^\s#]+)\""),
         (ROOT / "pyproject.toml", r"version = \"([0-9][^\s#]+)\""),
+        (ROOT / "custom_components/bakalari/const.py", r"LIB_VERSION: Final = \"([0-9][^\s#]+)\""),
     ],
 }
 
