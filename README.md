@@ -8,6 +8,11 @@ Custom komponenta pro Home Assistant, založená na [async-bakalari-api3](https:
 
 ## Komponenta je prozatím v testovacím stavu, jednotlivé služby budou postupně přidávány
 
+## 🚨 Breaking changes
+  - nově je každé dítě jako separátní `Device` s jednotlivými senzory
+  - staré senzory - `Rozvrh`, `Zprávy` jsou zatím ponechány bez rozlišení na `Device` vzhledem k zpětné kompatibilitě
+  - v následujících verzích dojde k automatickému transferu senzorů pod `Device`, bude ale nutné upravit názvy senzorů v Lovelace kartách
+
 ## Instalace (HACS)
 
 1. V HACS → **Integrations** → menu (⋮) → **Custom repositories**
@@ -24,6 +29,12 @@ Custom komponenta pro Home Assistant, založená na [async-bakalari-api3](https:
 - Rozvrh
   - tento senzor stahuje rozvrh na aktuální týden +- 7 dní
 
+- Známky
+  - prozatím zobrazujeme pouze poslední přijatou známku a počet nových známek od posledního stažení
+  - přidána možnost `fire_event` pro vyvolání události při nové známce, bude sloužit k oznámení např. v mobilní aplikaci
+  - přidána možnost Websocketu
+  - další funkcionality v následujících verzích
+
 ## Karty pro Lovelace jsou nyní instalovány přes HACS ve vlastím [repozitáři](https://github.com/schizza/bakalari-ha-frontend).
 
 - v HACS přidej repozitář `https://github.com/schizza/bakalari-ha-frontend`
@@ -39,7 +50,7 @@ Custom komponenta pro Home Assistant, založená na [async-bakalari-api3](https:
 
 ## Požadavky
 
-- Home Assistant `2025.1.4+`
+- Home Assistant `2025.9.1+`
 - PyPI: `async-bakalari-api==0.5.0`
 
 ## Licence
