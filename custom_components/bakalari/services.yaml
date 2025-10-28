@@ -1,1 +1,23 @@
-# This file is required for Home Assistant service validation. No services are defined.
+mark_as_seen:
+  name: Mark as seen
+  description: Mark a specific mark as seen for a selected child.
+  fields:
+    mark_id:
+      name: Mark ID
+      description: Unique ID of the mark to mark as seen.
+      required: true
+      example: "abc123"
+      selector:
+        text:
+    child_key:
+      name: Child key
+      description: Composite key "<server>|<user_id>". If omitted, the first child is used.
+      required: false
+      example: "https://skola.bakalari.cz|123456"
+      selector:
+        text:
+
+refresh:
+  name: Refresh
+  description: Request an immediate data refresh from the coordinator.
+  fields: {}

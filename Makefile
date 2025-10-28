@@ -53,6 +53,7 @@ help:
 	@echo "  make hassfest-local                  - spustí hassfest na $(COMPONENT_PATH)"
 	@echo "  make hacs-local                      - HACS validace na $(COMPONENT_PATH)"
 	@echo "  make validate-local                  - hassfest + HACS"
+	@echo "  make check-versions                - zkontroluje správnost verzí"
 	@echo "  make clean                           - smaže cache (pytest/ruff/build)"
 	@echo "  make distclean                       - clean + smaže .venv a .ha-core"
 

@@ -16,6 +16,7 @@ from .const import (
     CONF_SURNAME,
     CONF_USER_ID,
     CONF_USERNAME,
+    DOMAIN,
     ChildRecord,
     ChildrenMap,
 )
@@ -38,8 +39,6 @@ CHILDREN_MAP_SCHEMA = vol.Schema({str: CHILD_STORAGE_SCHEMA})
 
 
 # Child helpers
-
-
 def child_from_raw(raw: dict[str, Any] | None) -> tuple[str, ChildRecord]:
     """Convert RAW data to ChildRecord."""
 
@@ -120,3 +119,20 @@ def redact_child_info(child_info: ChildRecord) -> ChildRecord:
     if CONF_REFRESH_TOKEN in redacted:
         redacted[CONF_REFRESH_TOKEN] = "***"
     return redacted
+
+
+def make_child_key(server: str, user_id: str) -> str:
+    """Create a file-system safe and readable composite key for a child.
+
+    The server must not contain the '|' character.
+    """
+    return f"{server}|{user_id}"
+
+
+def device_ident(entry_id: str, child_key: str) -> tuple[str, str]:
+    """Create a device identification tuple for Home Assistant device registry.
+
+    The entry_id and child_key must not contain the ':' character.
+    """
+    # identification tuple for HA device registry
+    return (DOMAIN, f"{entry_id}:{child_key}")
