@@ -14,7 +14,12 @@ from homeassistant.util import dt
 import orjson
 
 from .api import BakalariClient
-from .const import CONF_CHILDREN
+from .const import CONF_CHILDREN, DOMAIN
+from .coordinator import BakalariCoordinator
+from .sensor_marks import (
+    BakalariLastMarkSensor,
+    BakalariNewMarksSensor,
+)
 from .utils import ensure_children_dict, redact_child_info
 
 _LOGGER = logging.getLogger(__name__)
@@ -28,8 +33,15 @@ async def async_setup_entry(
 ):
     """Set up Bakalari sensors from a config entry."""
 
+    data = hass.data.get(DOMAIN, {}).get(entry.entry_id, {})
+    coord: BakalariCoordinator = data["coordinator"]
+
     children = ensure_children_dict(entry.options.get(CONF_CHILDREN, {}))
     entities = []
+
+    # Retain old entities for backward compatibility
+    # We will delete them in the future, while they will use coordinator
+    # and migration process will be done automatically
     for child_id, child_info in children.items():
         _LOGGER.warning(
             "Setting up Bakalari sensors for child %s with child_info: %s",
@@ -42,6 +54,11 @@ async def async_setup_entry(
         entities.append(
             BakalariTimetableSensor(hass, entry, child_id, child_info.get("name", child_id))
         )
+    # Setup new sensors that will use coordinator
+    for child in coord.child_list:
+        entities.append(BakalariNewMarksSensor(coord, child))
+        entities.append(BakalariLastMarkSensor(coord, child))
+
     async_add_entities(entities, update_before_add=True)
 
 
@@ -54,7 +71,7 @@ class BakalariMessagesSensor(SensorEntity):
         self._entry = entry
         self._child_id = child_id
         self._child_name = child_name
-        self._attr_name = f"Bakaláři zprávy {child_name}"
+        self._attr_name = "Bakaláři zprávy"
         self._attr_unique_id = f"bakalari_{child_id}_messages"
         self._attr_icon = "mdi:email"
         self._messages = []
@@ -104,7 +121,7 @@ class BakalariTimetableSensor(SensorEntity):
         self._entry = entry
         self._child_id = child_id
         self._child_name = child_name
-        self._attr_name = f"Bakaláři rozvrh {child_name}"
+        self._attr_name = "Bakaláři rozvrh"
         self._attr_unique_id = f"bakalari_{child_id}_timetable"
         self._attr_icon = "mdi:calendar-clock"
         self._timetable = None
