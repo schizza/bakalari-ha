@@ -8,14 +8,13 @@ from homeassistant import config_entries
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
+from .api import BakalariClient
 from .const import CONF_CHILDREN, DOMAIN
 from .coordinator import BakalariCoordinator
 from .sensor_marks import (
     BakalariLastMarkSensor,
     BakalariNewMarksSensor,
 )
-from .sensor_messages import BakalariMessagesSensor
-from .sensor_timetable import BakalariTimetableSensor
 from .utils import ensure_children_dict, redact_child_info
 
 _LOGGER = logging.getLogger(__name__)
