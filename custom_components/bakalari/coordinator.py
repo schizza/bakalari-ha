@@ -87,9 +87,7 @@ class BakalariCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                     tmp_cr[CONF_REFRESH_TOKEN] = rt
                 self.children[ck] = tmp_cr
 
-                display_name = (
-                    f"{cr.get('name', '')} {cr.get('surname', '')} ({cr.get('school', '')})".strip()
-                )
+                display_name = f"{cr.get('name', '')} {cr.get('surname', '')}".strip()
                 child_list.append(
                     Child(
                         key=ck,
@@ -104,7 +102,7 @@ class BakalariCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self.child_list: list[Child] = child_list
 
         # Expose library/API version to entities
-        self.api_version: str = f"API: {API_VERSION} Library: ({LIB_VERSION})"
+        self.api_version: str = f"Library: {LIB_VERSION}: API: {API_VERSION}"
 
         # Diff cache per child: set of (child_key, mark_id)
         self._seen: set[tuple[str, str]] = set()
