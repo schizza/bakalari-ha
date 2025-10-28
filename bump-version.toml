@@ -1,5 +1,5 @@
 [tool.bumpversion]
-current_version = "0.1.1"
+current_version = "1.0.0"
 commit = false
 tag = false
 
@@ -14,3 +14,8 @@ filename = "pyproject.toml"
 search = 'version = "{current_version}"'
 replace = 'version = "{new_version}"'
 no-regex = true
+
+[[tool.bumpversion.files]]
+filename = "custom_components/bakalari/const.py"
+search = 'LIB_VERSION: Final = "{current_version}"'
+replace = 'LIB_VERSION: Final = "{new_version}"'

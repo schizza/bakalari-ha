@@ -5,7 +5,11 @@ from typing import Final, NotRequired, Required, TypedDict
 DOMAIN = "bakalari"
 
 PLATFORMS = ["sensor", "calendar"]
+MANUFACTURER = "Bakaláři pro HomeAssistant"
+MODEL = "Bakaláři backend"
 
+LIB_VERSION: Final = "1.0.0"
+API_VERSION: Final = "0.5.0"
 CONF_CHILDREN: Final = "children"
 CONF_CREDENTIALS: Final = "credentials"
 CONF_USER_ID: Final = "user_id"
@@ -16,6 +20,8 @@ CONF_SERVER: Final = "server"
 CONF_NAME: Final = "name"
 CONF_SURNAME: Final = "surname"
 CONF_SCHOOL: Final = "school"
+CONF_SCAN_INTERVAL: Final = "scan_interval"
+DEFAULT_SCAN_INTERVAL: Final = 900
 
 
 class ChildRecord(TypedDict, total=False):
