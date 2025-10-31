@@ -7,7 +7,7 @@ import asyncio
 from collections.abc import Awaitable, Callable
 from datetime import date, datetime
 import logging
-from typing import Any, Literal, TypedDict, TypeVar, cast
+from typing import Any, Literal, TypedDict, TypeVar
 
 from async_bakalari_api import Bakalari, Komens, Marks, Timetable
 from async_bakalari_api.datastructure import Credentials
@@ -31,7 +31,7 @@ from .const import (
     RATE_LIMIT_EXCEEDED,
     ChildRecord,
 )
-from .utils import redact_child_info
+from .utils import ensure_child_record, redact_child_info
 
 _LOGGER = logging.getLogger(__name__)
 _fetch_lock: asyncio.Lock = asyncio.Lock()
@@ -179,13 +179,12 @@ class BakalariClient:
                         else:
                             current = target
                     return current
-                elif mode == "callable":
+                if mode == "callable":
                     if callable_fn is None:
                         raise ValueError("callable_fn cannot be None in 'callable' mode.")
                     return await callable_fn(_lib)
 
-                else:
-                    raise ValueError(f"Unsupported mode: {mode}")
+                raise ValueError(f"Unsupported mode: {mode}")
             except (Ex.RefreshTokenRedeemd, Ex.RefreshTokenExpired, Ex.InvalidToken) as err:
                 _LOGGER.error(
                     "Authentication error while %s for child_id=%s: %s", label, self.child_id, err
@@ -222,7 +221,7 @@ class BakalariClient:
                         out = func(*step_args, **step_kwargs)
                         last_out = await out if asyncio.iscoroutine(out) else out
                         current = last_out if step.get("follow_result", False) else target
-                    return last_out  # type: ignore[return-value]
+                    return last_out  # type: ignore[return-value] # noqa: TRY300
                 except (Ex.RefreshTokenExpired, Ex.RefreshTokenRedeemd, Ex.InvalidToken) as err:
                     _LOGGER.error(
                         "Auth error while %s for child_id=%s: %s", label, self.child_id, err
@@ -316,8 +315,8 @@ class BakalariClient:
         """Reset stored tokens in entry and drop API client to force re-login."""
         async with _entry_update_lock:
             entry = self._current_entry()
-            new_children = dict(entry.options.get(CONF_CHILDREN, {}))
-            child: ChildRecord = cast(ChildRecord, new_children.get(self.child_id, {}))
+            new_children = dict(entry.options[CONF_CHILDREN])
+            child: ChildRecord = ensure_child_record(new_children, self.child_id)
             child[CONF_ACCESS_TOKEN] = ""
             child[CONF_REFRESH_TOKEN] = ""
             new_children[self.child_id] = child
@@ -385,7 +384,9 @@ class BakalariClient:
             cred = self.lib.credentials  # use current credentials
             entry = self._current_entry()
             new_children = dict(entry.options.get(CONF_CHILDREN, {}))
-            child: ChildRecord = cast(ChildRecord, new_children[self.child_id])
+
+            child: ChildRecord = ensure_child_record(new_children, self.child_id)
+
             child[CONF_ACCESS_TOKEN] = cred.access_token or ""
             child[CONF_REFRESH_TOKEN] = cred.refresh_token or ""
             new_children[self.child_id] = child
