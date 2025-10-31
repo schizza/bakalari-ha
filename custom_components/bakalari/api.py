@@ -7,6 +7,7 @@ import asyncio
 from collections.abc import Awaitable, Callable
 from datetime import date, datetime
 import logging
+from time import time
 from typing import Any, Literal, TypedDict, TypeVar
 
 from async_bakalari_api import Bakalari, Komens, Marks, Timetable
@@ -346,7 +347,7 @@ class BakalariClient:
     async def _mark_reauth_requested(self) -> None:
         key = self._reauth_key()
         async with _reauth_state_lock:
-            _reauth_state[key] = time.time()
+            _reauth_state[key] = time()
 
     async def _clear_reauth_flag(self) -> None:
         key = self._reauth_key()
