@@ -85,6 +85,16 @@ def children_list_to_dict(raw_list: list[dict[str, Any]] | None) -> ChildrenMap:
     return out
 
 
+def ensure_child_record(obj: dict[str, Any], child_id: str) -> ChildRecord:
+    """Normalize a single child record and ensure it has the given child_id."""
+
+    _, child = child_from_raw(obj)
+    if child_id:
+        child[CONF_USER_ID] = str(child_id)
+        child = CHILD_STORAGE_SCHEMA(child)
+    return child
+
+
 def ensure_children_dict(obj: Any) -> ChildrenMap:
     """Accept any object and return a ChildrenMap.
 
