@@ -7,6 +7,7 @@ import asyncio
 from collections.abc import Awaitable, Callable
 from datetime import date, datetime
 import logging
+from time import time
 from typing import Any, Literal, TypedDict, TypeVar
 
 from async_bakalari_api import Bakalari, Komens, Marks, Timetable
