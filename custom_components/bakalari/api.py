@@ -280,6 +280,13 @@ class BakalariClient:
 
         self._last_tokens = self._snapshot_tokens()
 
+        if not self._validate_child_tokens(child):
+            _LOGGER.error(
+                "Bakalari instance for child_id=%s exists, but without valid tokens provided! This should not happen!",
+                child.get(CONF_USER_ID),
+            )
+            return None
+
         _LOGGER.warning(
             "Bakalari instance already exists. With parameters: user_id: %s, username: %s. Child_id is set to %s",
             self.lib.credentials.user_id,
