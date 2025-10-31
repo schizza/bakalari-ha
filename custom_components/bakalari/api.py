@@ -37,6 +37,10 @@ _LOGGER = logging.getLogger(__name__)
 _fetch_lock: asyncio.Lock = asyncio.Lock()
 _entry_update_lock: asyncio.Lock = asyncio.Lock()
 
+_reauth_state_lock: asyncio.Lock = asyncio.Lock()
+_reauth_state: dict[str, float] = {}
+
+
 T = TypeVar("T")
 
 
@@ -70,7 +74,7 @@ class BakalariClient:
         self._save_lock = asyncio.Lock()
         self._last_tokens: tuple[str, str] | None = None
 
-        _LOGGER.warning(
+        _LOGGER.debug(
             "[BakalariClient.__init__] Created BakalariClient instance for child_id=%s",
             self.child_id,
         )
@@ -288,8 +292,8 @@ class BakalariClient:
 
                     session = async_get_clientsession(self.hass)
                     self.lib = Bakalari(server=server, credentials=cred, session=session)
-                    _LOGGER.warning(
-                        "Bakalari instance created for child_id=%s With parameters: %s",
+                    _LOGGER.debug(
+                        "[BakalariClient._is_lib]: Bakalari library instance created for child_id=%s With parameters: %s",
                         self.child_id,
                         redact_child_info(child),
                     )
@@ -303,11 +307,10 @@ class BakalariClient:
             )
             return None
 
-        _LOGGER.warning(
-            "Bakalari instance already exists. With parameters: user_id: %s, username: %s. Child_id is set to %s",
-            self.lib.credentials.user_id,
-            self.lib.credentials.username,
+        _LOGGER.debug(
+            "[BakalariClient._is_lib]: Bakalari library instance already exists. Reusing current [child_id: %s, username: %s]",
             self.child_id,
+            self.lib.credentials.username,
         )
         return self.lib
 
@@ -331,9 +334,37 @@ class BakalariClient:
             self.child_id,
         )
 
+    def _reauth_key(self) -> str:
+        return f"{self.entry.entry_id}:{self.child_id}"
+
+    async def _should_request_reauth(self) -> bool:
+        key = self._reauth_key()
+        async with _reauth_state_lock:
+            last = _reauth_state.get(key)
+            return last is None
+
+    async def _mark_reauth_requested(self) -> None:
+        key = self._reauth_key()
+        async with _reauth_state_lock:
+            _reauth_state[key] = time.time()
+
+    async def _clear_reauth_flag(self) -> None:
+        key = self._reauth_key()
+        async with _reauth_state_lock:
+            if key in _reauth_state:
+                del _reauth_state[key]
+
     async def _start_reauth(self, reason: str) -> None:
         """Start Home Assistant reauth flow for this entry."""
         try:
+            if not await self._should_request_reauth():
+                _LOGGER.warning(
+                    "Reauthentication already requested for child_id=%s, skipping duplicate (reason: %s).",
+                    self.child_id,
+                    reason,
+                )
+                return
+            await self._mark_reauth_requested()
             self.hass.async_create_task(
                 self.hass.config_entries.flow.async_init(
                     self.entry.domain,
@@ -350,17 +381,18 @@ class BakalariClient:
             )
         except Exception:  # noqa: BLE001
             _LOGGER.exception("Failed to start reauth flow for child_id=%s", self.child_id)
+            await self._clear_reauth_flag()
 
     def _snapshot_tokens(self) -> tuple[Any, Any] | None:
         """Snapshot tokens."""
 
         if not self.lib or not getattr(self.lib, "credentials", None):
-            _LOGGER.warning("[BakalariClient._snapshot_tokens] No lib or credentials available.")
+            _LOGGER.error("[BakalariClient._snapshot_tokens] No library or credentials available.")
             return None
         cred = self.lib.credentials
-        _LOGGER.warning(
-            "[BakalariClient._snapshot_tokens] Snapshot tokens for user_id=%s:",
-            cred.user_id,
+        _LOGGER.debug(
+            "[BakalariClient._snapshot_tokens] Snapshot tokens for child_id=%s:",
+            self.child_id,
         )
         return (getattr(cred, CONF_ACCESS_TOKEN, None), getattr(cred, CONF_REFRESH_TOKEN, None))
 
@@ -395,12 +427,12 @@ class BakalariClient:
                 entry, options={**entry.options, CONF_CHILDREN: new_children}
             )
             self._last_tokens = (cred.access_token or "", cred.refresh_token or "")
-            _LOGGER.warning(
-                "Bakalari instance saved tokens on change for child_id=%s (user_id from credentials=%s). With parameters: %s",
+            _LOGGER.debug(
+                "[BakalariClient._save_tokens_if_changed]: Saved tokens on change for child_id=%s (%s)",
                 self.child_id,
-                cred.user_id,
                 redact_child_info(child),
             )
+        await self._clear_reauth_flag()
 
     async def async_get_messages(self) -> list[MessageContainer]:
         """Get messages from Bakalari API."""
@@ -410,7 +442,9 @@ class BakalariClient:
         # TODO: change to actual year, while sensors are refactored!
         start_of_school_year = datetime(year=today.year, month=10, day=1).date()
 
-        _LOGGER.debug("Fetching messages for child_id=%s", self.child_id)
+        _LOGGER.debug(
+            "[BakalariClient.async_get_messages]: Fetching messages for child_id=%s", self.child_id
+        )
         data = await self._api_call(
             label="fetching_messages",
             reauth_reason="messages",
@@ -434,6 +468,9 @@ class BakalariClient:
         """Fetch permanent timetable."""
         default: TimetableWeek = TimetableWeek()
 
+        _LOGGER.debug(
+            "[BakalariClient.async_get_timetable_permanent]: Fetching permanent timetable."
+        )
         return await self._api_call(
             label="fetching permanent timetable",
             reauth_reason="timetable_permanent",
@@ -450,6 +487,10 @@ class BakalariClient:
         """Fetch actual timetable for a specific date."""
 
         default: TimetableWeek = TimetableWeek()
+        _LOGGER.debug(
+            "[BakalariClient.async_get_timetable_actual]: Fetching actual timetable. (for_date=%s",
+            for_date,
+        )
         return await self._api_call(
             label="fetching actual timetable",
             reauth_reason="timetable_actual",
@@ -464,6 +505,7 @@ class BakalariClient:
         """Get marks from Bakalari API."""
 
         default: list[SubjectsBase] = []
+        _LOGGER.debug("[BakalariClient.async_get_marks]: Fetching marks.")
 
         return await self._api_call(
             label="fetching marks",
