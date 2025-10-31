@@ -384,9 +384,9 @@ class BakalariClient:
             cred = self.lib.credentials  # use current credentials
             entry = self._current_entry()
             new_children = dict(entry.options.get(CONF_CHILDREN, {}))
-            child: ChildRecord = dict(new_children[self.child_id])
-            child[CONF_ACCESS_TOKEN] = cred.access_token
-            child[CONF_REFRESH_TOKEN] = cred.refresh_token
+            child: ChildRecord = cast(ChildRecord, new_children[self.child_id])
+            child[CONF_ACCESS_TOKEN] = cred.access_token or ""
+            child[CONF_REFRESH_TOKEN] = cred.refresh_token or ""
             new_children[self.child_id] = child
 
             self.hass.config_entries.async_update_entry(
@@ -403,92 +403,74 @@ class BakalariClient:
     async def async_get_messages(self) -> list[MessageContainer]:
         """Get messages from Bakalari API."""
 
-        async with _fetch_lock:
-            lib: Bakalari = await self._is_lib()
-            komens: Komens = Komens(lib)
-            _LOGGER.warning(
-                "Komens using lib with user_id: %s and username: %s",
-                lib.credentials.user_id,
-                lib.credentials.username,
-            )
+        today = datetime.today().date()
 
-            # await komens.fetch_messages()
-            try:
-                messages: Messages = await komens.fetch_messages()
-                today = datetime.today().date()
-                start_of_school_year = datetime(year=today.year, month=10, day=1).date()
-                data = messages.get_messages_by_date(date=start_of_school_year, to_date=today)
+        # TODO: change to actual year, while sensors are refactored!
+        start_of_school_year = datetime(year=today.year, month=10, day=1).date()
 
-            except Exception as e:
-                _LOGGER.error("Failed to fetch messages from Bakalari API: %s", str(e))
-                _LOGGER.error(RATE_LIMIT_EXCEEDED)
-                data = []
-
-            await self._save_tokens_if_changed()
-
-            # data = await komens.get_messages()
-            # return data
-            # For now, just return an empty dict or placeholder
-            _LOGGER.info(
-                "Messages for child_id %s: %s (username: %s)",
-                lib.credentials.user_id,
-                data,
-                lib.credentials.username,
-            )
-            return data
+        _LOGGER.debug("Fetching messages for child_id=%s", self.child_id)
+        data = await self._api_call(
+            label="fetching_messages",
+            reauth_reason="messages",
+            default=[],
+            use_lock=True,
+            mode="chain",
+            chain_module=Komens,
+            chain=[
+                {"method": "fetch_messages", "args": (), "kwargs": {}, "follow_result": True},
+                {
+                    "method": "get_messages_by_date",
+                    "args": (start_of_school_year,),
+                    "kwargs": {"to_date": today},
+                },
+            ],
+        )
+        _LOGGER.info("Messages for child_id %s: %s", self.child_id, data)
+        return data
 
     async def async_get_timetable_permanent(self) -> TimetableWeek:
-        """Fetch timetable."""
+        """Fetch permanent timetable."""
+        default: TimetableWeek = TimetableWeek()
 
-        lib: Bakalari = await self._is_lib()
+        return await self._api_call(
+            label="fetching permanent timetable",
+            reauth_reason="timetable_permanent",
+            default=default,
+            mode="single",
+            module=Timetable,
+            method="fetch_permanent",
+        )
 
-        async with _fetch_lock:
-            try:
-                async with Timetable(bakalari=lib) as timetable:
-                    data: TimetableWeek = await timetable.fetch_permanent()
-            except Exception as e:
-                _LOGGER.error("Failed to fetch timetable from Bakalari API: %s", str(e))
-                _LOGGER.error(RATE_LIMIT_EXCEEDED)
-                data: TimetableWeek = []
+    async def async_get_timetable_actual(
+        self,
+        for_date: datetime | date | None = None,
+    ) -> TimetableWeek:
+        """Fetch actual timetable for a specific date."""
 
-        await self._save_tokens_if_changed()
-
-        return data
+        default: TimetableWeek = TimetableWeek()
+        return await self._api_call(
+            label="fetching actual timetable",
+            reauth_reason="timetable_actual",
+            default=default,
+            mode="single",
+            module=Timetable,
+            method="fetch_actual",
+            kwargs={"for_date": for_date},
+        )
 
     async def async_get_marks(self) -> list[SubjectsBase]:
         """Get marks from Bakalari API."""
 
-        lib = await self._is_lib()
-        marks = Marks(lib)
+        default: list[SubjectsBase] = []
 
-        await marks.fetch_marks()
-        data = await marks.get_marks_all()
-
-        await self._save_tokens_if_changed()
-
-        # data = await marks.get_marks()
-        # return data
-        # For now, just return an empty dict or placeholder
-        return data
-
-    async def async_get_timetable_actual(
-        self, for_date: datetime | date | None = None
-    ) -> TimetableWeek:
-        """Fetch actual timetable for a specific date.
-
-        If for_date is None, the API will default to today.
-        """
-        lib: Bakalari = await self._is_lib()
-
-        async with _fetch_lock:
-            try:
-                async with Timetable(bakalari=lib) as timetable:
-                    data: TimetableWeek = await timetable.fetch_actual(for_date=for_date)
-            except Exception as e:
-                _LOGGER.error("Failed to fetch actual timetable from Bakalari API: %s", str(e))
-                _LOGGER.error(RATE_LIMIT_EXCEEDED)
-                data: TimetableWeek = []
-
-        await self._save_tokens_if_changed()
-
-        return data
+        return await self._api_call(
+            label="fetching marks",
+            reauth_reason="marks",
+            default=default,
+            mode="chain",
+            chain_module=Marks,
+            chain=[
+                {"method": "fetch_marks", "follow_result": False},
+                {"method": "get_marks_all", "follow_result": True},
+            ],
+        )
