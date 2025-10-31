@@ -471,7 +471,7 @@ class BakalariClient:
             mode="chain",
             chain_module=Marks,
             chain=[
-                {"method": "fetch_marks", "follow_result": False},
+                {"method": "fetch_marks"},
                 {"method": "get_marks_all", "follow_result": True},
             ],
         )
