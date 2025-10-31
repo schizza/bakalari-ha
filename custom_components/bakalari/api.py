@@ -255,7 +255,18 @@ class BakalariClient:
         entry = self._current_entry()
         return entry.options[CONF_CHILDREN][self.child_id]
 
-    async def _is_lib(self) -> Bakalari:
+    def _validate_child_tokens(self, child: ChildRecord) -> bool:
+        """Validate child tokens."""
+
+        if not child.get(CONF_ACCESS_TOKEN) and not child.get(CONF_REFRESH_TOKEN):
+            _LOGGER.error(
+                "Child (child_id=%s) must have valid access and refresh tokens",
+                child.get(CONF_USER_ID),
+            )
+            return False
+        return True
+
+    async def _is_lib(self) -> Bakalari | None:
         """Check if we have Bakalari initialized, otherwise create new instance of Bakalari for the child."""
         child = self._current_child()
         server = child.get(CONF_SERVER)
@@ -263,6 +274,9 @@ class BakalariClient:
         if self.lib is None:
             async with self._lib_lock:
                 if self.lib is None:
+                    if not self._validate_child_tokens(child):
+                        return None
+
                     cred: Credentials = Credentials.create_from_json(
                         data={
                             "user_id": child.get(CONF_USER_ID),
@@ -271,7 +285,9 @@ class BakalariClient:
                             "refresh_token": child.get(CONF_REFRESH_TOKEN),
                         }
                     )
-                    self.lib = Bakalari(server=server, credentials=cred)
+
+                    session = async_get_clientsession(self.hass)
+                    self.lib = Bakalari(server=server, credentials=cred, session=session)
                     _LOGGER.warning(
                         "Bakalari instance created for child_id=%s With parameters: %s",
                         self.child_id,
@@ -294,6 +310,46 @@ class BakalariClient:
             self.child_id,
         )
         return self.lib
+
+    async def _reset_tokens_and_client(self) -> None:
+        """Reset stored tokens in entry and drop API client to force re-login."""
+        async with _entry_update_lock:
+            entry = self._current_entry()
+            new_children = dict(entry.options.get(CONF_CHILDREN, {}))
+            child: ChildRecord = cast(ChildRecord, new_children.get(self.child_id, {}))
+            child[CONF_ACCESS_TOKEN] = ""
+            child[CONF_REFRESH_TOKEN] = ""
+            new_children[self.child_id] = child
+
+            self.hass.config_entries.async_update_entry(
+                entry, options={**entry.options, CONF_CHILDREN: new_children}
+            )
+        self._last_tokens = None
+        self.lib = None
+        _LOGGER.warning(
+            "Cleared tokens and reset client for child_id=%s; reauth required.",
+            self.child_id,
+        )
+
+    async def _start_reauth(self, reason: str) -> None:
+        """Start Home Assistant reauth flow for this entry."""
+        try:
+            self.hass.async_create_task(
+                self.hass.config_entries.flow.async_init(
+                    self.entry.domain,
+                    context={"source": SOURCE_REAUTH},
+                    data={
+                        "entry_id": self.entry.entry_id,
+                        "child_id": self.child_id,
+                        "server": self._current_child().get(CONF_SERVER),
+                        "username": self._current_child().get(CONF_USERNAME),
+                        "displayName": f"{self._current_child().get(CONF_NAME)} {self._current_child().get(CONF_SURNAME)}",
+                        "reason": reason,
+                    },
+                )
+            )
+        except Exception:  # noqa: BLE001
+            _LOGGER.exception("Failed to start reauth flow for child_id=%s", self.child_id)
 
     def _snapshot_tokens(self) -> tuple[Any, Any] | None:
         """Snapshot tokens."""
