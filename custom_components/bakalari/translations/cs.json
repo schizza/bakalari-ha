@@ -8,7 +8,7 @@
     },
     "abort": {
       "reauth_entry_not_found": "Nepodařilo se najít dítě s daným přihlašovacím jménem.",
-      "reauth_success": "Reautorizace úspěšná."
+      "reauth_successful": "Reautorizace úspěšná."
     },
     "step": {
       "user": {
