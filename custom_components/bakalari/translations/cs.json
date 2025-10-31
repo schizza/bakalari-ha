@@ -19,6 +19,13 @@
         "data": {
           "school": "Škola"
         }
+      },
+      "reuth_confirm": {
+        "title": "Reautorizace dítěte",
+        "data": {
+          "password": "Heslo"
+        },
+        "description": "Zadejte heslo pro dítě {displayName} ({username}, které chcete reautorizovat."
       }
     },
     "progress": {
