@@ -2,7 +2,13 @@
   "title": "Bakaláři - Integrace pro Home Assistant",
   "config": {
     "error": {
-      "loading_failed": "Nepodařilo se načíst školy z serveru ani s cache!"
+      "loading_failed": "Nepodařilo se načíst školy z serveru ani s cache!",
+      "invalid_auth": "Neplatné přihlašovací údaje!",
+      "cannot_connect": "Nelze se připojit k serveru!"
+    },
+    "abort": {
+      "reauth_entry_not_found": "Nepodařilo se najít dítě s daným přihlašovacím jménem.",
+      "reauth_successful": "Reautorizace úspěšná."
     },
     "step": {
       "user": {
@@ -20,12 +26,12 @@
           "school": "Škola"
         }
       },
-      "reuth_confirm": {
+      "reauth_confirm": {
         "title": "Reautorizace dítěte",
         "data": {
           "password": "Heslo"
         },
-        "description": "Zadejte heslo pro dítě {displayName} ({username}, které chcete reautorizovat."
+        "description": "Zadejte heslo pro dítě {displayName} ({username})."
       }
     },
     "progress": {
