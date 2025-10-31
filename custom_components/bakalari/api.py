@@ -4,23 +4,28 @@ This module provides an interface to interact with the Bakalari ASYNC API.
 """
 
 import asyncio
+from collections.abc import Awaitable, Callable
 from datetime import date, datetime
 import logging
-from typing import Any
+from typing import Any, Literal, TypedDict, TypeVar, cast
 
 from async_bakalari_api import Bakalari, Komens, Marks, Timetable
 from async_bakalari_api.datastructure import Credentials
-from async_bakalari_api.komens import MessageContainer, Messages
+from async_bakalari_api.exceptions import Ex
+from async_bakalari_api.komens import MessageContainer
 from async_bakalari_api.marks import SubjectsBase
 from async_bakalari_api.timetable import TimetableWeek
-from homeassistant.config_entries import ConfigEntry
+from homeassistant.config_entries import SOURCE_REAUTH, ConfigEntry
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .const import (
     CONF_ACCESS_TOKEN,
     CONF_CHILDREN,
+    CONF_NAME,
     CONF_REFRESH_TOKEN,
     CONF_SERVER,
+    CONF_SURNAME,
     CONF_USER_ID,
     CONF_USERNAME,
     RATE_LIMIT_EXCEEDED,
@@ -31,6 +36,17 @@ from .utils import redact_child_info
 _LOGGER = logging.getLogger(__name__)
 _fetch_lock: asyncio.Lock = asyncio.Lock()
 _entry_update_lock: asyncio.Lock = asyncio.Lock()
+
+T = TypeVar("T")
+
+
+class _ChainStep(TypedDict, total=False):
+    """Step in the chain of API calls."""
+
+    method: str
+    args: tuple[Any, ...]
+    kwargs: dict[str, Any]
+    follow_result: bool  # If true, call next step in chain if previous step was successful
 
 
 class BakalariClient:
