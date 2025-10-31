@@ -178,6 +178,7 @@ class BakalariClient:
                             pass
                         else:
                             current = target
+                    return current
                 elif mode == "callable":
                     if callable_fn is None:
                         raise ValueError("callable_fn cannot be None in 'callable' mode.")
