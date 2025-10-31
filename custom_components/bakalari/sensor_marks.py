@@ -23,7 +23,7 @@ class BakalariNewMarksSensor(BakalariEntity, SensorEntity):
 
     _attr_icon = "mdi:school"
     _attr_translation_key = "new_marks"
-    _attr_has_entity_name = False
+    _attr_has_entity_name = True
 
     def __init__(self, coordinator: BakalariCoordinator, child: Child) -> None:
         """Initialize the sensor."""
@@ -55,7 +55,7 @@ class BakalariLastMarkSensor(BakalariEntity, SensorEntity):
 
     _attr_icon = "mdi:bookmark"
     _attr_translation_key = "last_mark"
-    _attr_has_entity_name = False
+    _attr_has_entity_name = True
 
     def __init__(self, coordinator: BakalariCoordinator, child: Child) -> None:
         """Initialize the sensor."""
