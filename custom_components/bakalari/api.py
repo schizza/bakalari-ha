@@ -84,7 +84,7 @@ class BakalariClient:
     ) -> Callable[[Callable[..., Awaitable[T]]], Callable[..., Awaitable[T]]]:
         """Decorate API call.
 
-        Decoreated function must have (self, lib, *args, **kwargs) -> Awaitable[T] signature.
+        Decorated function must have (self, lib, *args, **kwargs) -> Awaitable[T] signature.
         `lib` is Bakalari instance
         """
 
