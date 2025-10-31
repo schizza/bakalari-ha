@@ -165,7 +165,7 @@ class BakalariClient:
 
                 if mode == "chain":
                     if chain is None:
-                        raise ValueError("chain cannot be None in 'chian' mode.")
+                        raise ValueError("chain cannot be None in 'chain' mode.")
                     target: Any = _lib if chain_module is None else chain_module(_lib)
                     current: Any = target
                     for step in chain:
