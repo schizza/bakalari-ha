@@ -346,7 +346,7 @@ class BakalariClient:
     async def _mark_reauth_requested(self) -> None:
         key = self._reauth_key()
         async with _reauth_state_lock:
-            _reauth_state[key] = time.time()
+            _reauth_state[key] = time()
 
     async def _clear_reauth_flag(self) -> None:
         key = self._reauth_key()
