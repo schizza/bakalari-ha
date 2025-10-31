@@ -186,7 +186,7 @@ class BakalariClient:
 
                 else:
                     raise ValueError(f"Unsupported mode: {mode}")
-            except (Ex.RefreshTokenRedeemd, Ex.InvalidToken) as err:
+            except (Ex.RefreshTokenRedeemd, Ex.RefreshTokenExpired, Ex.InvalidToken) as err:
                 _LOGGER.error(
                     "Authentication error while %s for child_id=%s: %s", label, self.child_id, err
                 )
