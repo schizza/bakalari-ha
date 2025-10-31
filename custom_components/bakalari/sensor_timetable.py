@@ -27,7 +27,7 @@ class BakalariTimetableSensor(SensorEntity):
         self._child_id = child_id
         self._child_name = child_name
         # Keep short, child will be visible at device level
-        self._attr_name = "Bakaláři rozvrh"
+        self._attr_name = f"Bakaláři rozvrh - {child_name}"
         self._attr_unique_id = f"bakalari_{child_id}_timetable"
         self._attr_icon = "mdi:calendar-clock"
         self._timetable = None

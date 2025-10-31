@@ -32,7 +32,7 @@ class BakalariMessagesSensor(SensorEntity):
         self._child_id = child_id
         self._child_name = child_name
         # Keep short, child will be visible at device level
-        self._attr_name = "Bakaláři zprávy"
+        self._attr_name = f"Bakaláři zprávy {child_name}"
         self._attr_unique_id = f"bakalari_{child_id}_messages"
         self._attr_icon = "mdi:email"
         self._messages: list[dict[str, Any]] = []
