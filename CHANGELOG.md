@@ -95,7 +95,7 @@ Podpora Rozvrhu `Timetable module`
 
 ## Breaking changes
 
- Karty Lovelace přesunuty to vlastního repozitáře  (schizza/bakalari-ha-frontend)
+ Karty Lovelace přesunuty do vlastního repozitáře  (schizza/bakalari-ha-frontend)
  - smazan www/bakalari-cards.js
  - karty pro Lovelace se nyní instalují přes HACS ve vlastním repozitáři
 
