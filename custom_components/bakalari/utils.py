@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, cast
 import uuid
 
 import voluptuous as vol
@@ -85,6 +85,51 @@ def children_list_to_dict(raw_list: list[dict[str, Any]] | None) -> ChildrenMap:
     return out
 
 
+def ensure_child_record(obj: Any, child_id: str) -> ChildRecord:
+    """Return a normalized ChildRecord for the given child_id.
+
+    Accepts:
+    - raw child record (dict)
+    - children map dict {child_id: child_record}
+    - list of raw child records
+    """
+
+    raw: dict[str, Any] | None = None
+
+    # Case 1: children map dict
+    if isinstance(obj, dict) and child_id in obj and isinstance(obj[child_id], dict):
+        raw = obj.get(child_id)
+
+    # Case 2: raw child dict
+    elif isinstance(obj, dict) and (
+        CONF_USER_ID in obj or CONF_SERVER in obj or CONF_NAME in obj or "credentials" in obj
+    ):
+        raw = obj
+
+    # Case 3: list of raw child dicts
+    elif isinstance(obj, list):
+        for item in obj:
+            if not isinstance(item, dict):
+                continue
+            creds = item.get("credentials") or {}
+            uid = item.get(CONF_USER_ID) or (
+                creds.get(CONF_USER_ID) if isinstance(creds, dict) else None
+            )
+            if str(uid) == str(child_id):
+                raw = item
+                break
+
+    # Fallback: build minimal raw record with given child_id
+    if raw is None:
+        raw = {CONF_USER_ID: str(child_id)}
+
+    _, child = child_from_raw(raw)
+    if child_id:
+        child[CONF_USER_ID] = str(child_id)
+        child = CHILD_STORAGE_SCHEMA(child)
+    return child
+
+
 def ensure_children_dict(obj: Any) -> ChildrenMap:
     """Accept any object and return a ChildrenMap.
 
@@ -99,9 +144,9 @@ def ensure_children_dict(obj: Any) -> ChildrenMap:
             if raw_child is None:
                 continue
             try:
-                out[str(cid)] = CHILD_STORAGE_SCHEMA(dict(raw_child))
+                out[str(cid)] = cast(ChildRecord, CHILD_STORAGE_SCHEMA(dict(raw_child)))
             except vol.Invalid:
-                out[str(cid)] = dict(raw_child or {})
+                out[str(cid)] = cast(ChildRecord, dict(raw_child or {}))
         return out
 
     if isinstance(obj, list):
@@ -112,12 +157,13 @@ def ensure_children_dict(obj: Any) -> ChildrenMap:
 def redact_child_info(child_info: ChildRecord) -> ChildRecord:
     """Redact sensitive information from child info."""
 
-    redacted: ChildRecord = dict(child_info)  # type: ignore[assignment]
+    # Do not mutate the original dict; return a shallow copy with redacted fields
+    redacted: ChildRecord = cast(ChildRecord, dict(child_info))
 
     if CONF_ACCESS_TOKEN in redacted:
-        redacted[CONF_ACCESS_TOKEN] = "***"
+        redacted[CONF_ACCESS_TOKEN] = "***" if redacted[CONF_ACCESS_TOKEN] else "EMPTY!"
     if CONF_REFRESH_TOKEN in redacted:
-        redacted[CONF_REFRESH_TOKEN] = "***"
+        redacted[CONF_REFRESH_TOKEN] = "***" if redacted[CONF_REFRESH_TOKEN] else "EMPTY!"
     return redacted
 
 

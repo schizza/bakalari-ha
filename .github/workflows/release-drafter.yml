@@ -9,25 +9,22 @@ on:
 
 permissions:
   contents: write
-  pull-requests: read
+  pull-requests: write
+  issues: write  
 
 concurrency:
-  group: release-drafter-dev-${{ github.ref }}
+  group: release-drafter-dev
   cancel-in-progress: true
 
 jobs:
   update_release_draft:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-          fetch-tags: true
       - name: Update draft release for dev
         uses: release-drafter/release-drafter@v6
         with:
           config-name: release-drafter.yml
-          commitish: ${{ github.event.pull_request.base.ref || github.ref_name }}
+          commitish: dev
           filter-by-commitish: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

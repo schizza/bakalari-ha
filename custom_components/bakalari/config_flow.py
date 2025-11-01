@@ -6,12 +6,24 @@ import logging
 
 from async_bakalari_api import Bakalari
 from async_bakalari_api.bakalari import Schools
+from async_bakalari_api.datastructure import Credentials
+from async_bakalari_api.exceptions import Ex
 from homeassistant import config_entries
 from homeassistant.core import callback
+from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.storage import Store
+import voluptuous as vol
 
-from .const import DOMAIN, SCHOOLS_CACHE_FILE
+from .const import (
+    CONF_ACCESS_TOKEN,
+    CONF_CHILDREN,
+    CONF_REFRESH_TOKEN,
+    DOMAIN,
+    SCHOOLS_CACHE_FILE,
+    ChildRecord,
+)
 from .options_flow import BakalariOptionsFlow
+from .utils import ensure_child_record
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -27,6 +39,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         super().__init__()
         self._schools: Schools | None = None
         self._loading_task = None
+        self._reauth_data: dict | None = None
 
     async def _load_schools(self) -> bool:
         """Load schools from cache or fetch new ones from server."""
@@ -69,6 +82,73 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         """Handle the completion step."""
 
         return self.async_create_entry(title="Bakaláři", data={}, options={"children": []})
+
+    async def async_step_reauth(self, data: dict | None) -> config_entries.ConfigFlowResult:
+        """Handle the reauthentication step."""
+
+        self._reauth_data = data or {}
+        return await self.async_step_reauth_confirm()
+
+    async def async_step_reauth_confirm(self, user_input=None) -> config_entries.ConfigFlowResult:
+        """Handle the reauthentication confirmation step."""
+
+        if user_input is None:
+            schema = vol.Schema(
+                {
+                    vol.Required("password"): str,
+                }
+            )
+            return self.async_show_form(
+                step_id="reauth_confirm",
+                data_schema=schema,
+                description_placeholders={
+                    "displayName": self._reauth_data.get("displayName") or "",
+                    "username": self._reauth_data.get("username") or "",
+                },
+            )
+
+        entry_id = (self._reauth_data or {}).get("entry_id")
+        child_id = (self._reauth_data or {}).get("child_id")
+        server = (self._reauth_data or {}).get("server")
+        username = (self._reauth_data or {}).get("username")
+
+        if not entry_id or not child_id or not server or not username:
+            return self.async_abort(reason="reauth_missing_context")
+
+        try:
+            session = async_get_clientsession(self.hass)
+            async with Bakalari(server, session=session) as api:
+                credentials: Credentials = await api.first_login(username, user_input["password"])
+        except Ex.InvalidLogin:
+            return self.async_show_form(
+                step_id="reauth_confirm",
+                data_schema=vol.Schema({vol.Required("password"): str}),
+                errors={"base": "invalid_auth"},
+            )
+        except Exception:
+            return self.async_show_form(
+                step_id="reauth_confirm",
+                data_schema=vol.Schema({vol.Required("password"): str}),
+                errors={"base": "cannot_connect"},
+            )
+
+        # Update entry options with new tokens
+        entry = self.hass.config_entries.async_get_entry(entry_id)
+        if entry is None:
+            return self.async_abort(reason="reauth_entry_not_found")
+
+        children = dict(entry.options.get(CONF_CHILDREN, {}))
+        child: ChildRecord = ensure_child_record(children, child_id)
+
+        child[CONF_ACCESS_TOKEN] = credentials.access_token or ""
+        child[CONF_REFRESH_TOKEN] = credentials.refresh_token or ""
+        children[child_id] = child
+
+        self.hass.config_entries.async_update_entry(
+            entry, options={**entry.options, CONF_CHILDREN: children}
+        )
+
+        return self.async_abort(reason="reauth_successful")
 
     @staticmethod
     @callback

@@ -11,6 +11,8 @@ from typing import Any
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
+from homeassistant.util import dt
+import orjson
 
 from .api import BakalariClient
 from .const import (
@@ -42,6 +44,7 @@ class Child:
     user_id: str
     server: str
     display_name: str  # e.g., "Jana Nováková (ZŠ X)"
+    short_name: str
 
 
 class BakalariCoordinator(DataUpdateCoordinator[dict[str, Any]]):
@@ -96,6 +99,7 @@ class BakalariCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                         user_id=user_id,
                         server=server,
                         display_name=display_name,
+                        short_name=cr.get("name"),
                     )
                 )
             except Exception:  # noqa: BLE001
@@ -104,7 +108,7 @@ class BakalariCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self.child_list: list[Child] = child_list
 
         # Expose library/API version to entities
-        self.api_version: str = f"API: {API_VERSION} Library: ({LIB_VERSION})"
+        self.api_version: str = f"API: {API_VERSION} Library: {LIB_VERSION}"
 
         # Diff cache per child: set of (child_key, mark_id)
         self._seen: set[tuple[str, str]] = set()
@@ -125,7 +129,7 @@ class BakalariCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self._clients: dict[str, BakalariClient] = {}
 
         _LOGGER.debug(
-            "Coordinator initialized for entry_id=%s with %s child(ren).",
+            "[BakalariCoordinator] Coordinator initialized for entry_id=%s with %s child(ren).",
             entry.entry_id,
             len(self.child_list),
         )
@@ -147,15 +151,26 @@ class BakalariCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     # ---------- Update lifecycle ----------
 
     async def _async_update_data(self) -> dict[str, Any]:
-        """Fetch and prepare marks for all children."""
+        """Fetch and prepare marks, messages and timetable for all children."""
         try:
             marks_by_child: dict[str, list[dict[str, Any]]] = {}
+            messages_by_child: dict[str, list[dict[str, Any]]] = {}
+            timetable_by_child: dict[str, list[Any]] = {}
 
             # Sequential fetch (can be parallelized if needed)
             for ch in self.child_list:
                 raw = await self._fetch_child(ch)
-                items = self._parse_marks(ch, raw)
-                marks_by_child[ch.key] = items
+
+                # Marks
+                marks = self._parse_marks(ch, raw)
+                marks_by_child[ch.key] = marks
+
+                # Messages
+                messages = self._parse_messages(ch, raw)
+                messages_by_child[ch.key] = messages
+
+                # Timetable - keep raw weeks list (as returned by client)
+                timetable_by_child[ch.key] = raw.get("timetable") or []
 
         except Exception as err:  # noqa: BLE001
             raise UpdateFailed(str(err)) from err
@@ -165,11 +180,13 @@ class BakalariCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
             return {
                 "marks_by_child": marks_by_child,
+                "messages_by_child": messages_by_child,
+                "timetable_by_child": timetable_by_child,
                 "last_sync_ok": True,
             }
 
     async def _fetch_child(self, child: Child) -> dict[str, Any]:
-        """Fetch raw marks payload for a specific child via BakalariClient."""
+        """Fetch raw payloads (marks, messages, timetable) for a specific child via BakalariClient."""
 
         # Map composite key to original options key (usually user_id)
         opt_key = self._option_key_by_child_key.get(child.key, child.user_id)
@@ -179,8 +196,25 @@ class BakalariCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             client = BakalariClient(self.hass, self.entry, opt_key)
             self._clients[child.key] = client  # cache per child
 
+        # Marks
         subjects = await client.async_get_marks()
-        return {"subjects": subjects}
+
+        # Messages
+        messages = await client.async_get_messages()
+
+        # Timetable: current, next and previous week
+        today = dt.now().date()
+        dates = [today, today + timedelta(weeks=1), today - timedelta(weeks=1)]
+        weeks: list[Any] = []
+        for d in dates:
+            w = await client.async_get_timetable_actual(d)
+            weeks.append(w)
+
+        return {
+            "subjects": subjects,
+            "messages": messages,
+            "timetable": weeks,
+        }
 
     def _parse_marks(self, child: Child, raw: dict[str, Any]) -> list[dict[str, Any]]:
         """Normalize raw marks into a flat list of dicts."""
@@ -234,6 +268,25 @@ class BakalariCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         except Exception:
             _LOGGER.debug("Failed to sort marks for child_key=%s", child.key)
         return items
+
+    def _parse_messages(self, child: Child, raw: dict[str, Any]) -> list[dict[str, Any]]:
+        """Normalize raw messages into a list of dicts."""
+        data = raw.get("messages") or []
+        items: list[dict[str, Any]] = []
+        try:
+            items = [orjson.loads(m.as_json()) for m in data]
+        except Exception:  # noqa: BLE001
+            _LOGGER.exception("Failed to parse messages for child_key=%s", child.key)
+        return items
+
+    def option_key_for_child(self, child_key: str) -> str | None:
+        """Expose original options key (typically user_id) for a given composite child key."""
+        return self._option_key_by_child_key.get(child_key)
+
+    @property
+    def option_key_by_child_key(self) -> dict[str, str]:
+        """Expose a copy of the mapping 'composite child key' -> 'options key' for migrations."""
+        return dict(self._option_key_by_child_key)
 
     def child_by_key(self, ck: str) -> Child:
         """Return Child object by composite key or raise KeyError."""

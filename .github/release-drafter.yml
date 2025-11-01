@@ -1,8 +1,7 @@
 name-template: 'v$RESOLVED_VERSION'
 tag-template: 'v$RESOLVED_VERSION'
 
-commitish: dev
-filter-by-commitish: true
+filter-by-commitish: false
 
 version-resolver:
   major:
@@ -10,10 +9,9 @@ version-resolver:
   minor:
     labels: ['feature', 'feat', 'enhancement', 'semver:minor']
   patch:
-    labels: ['bug', 'fix', 'chore', 'refactor', 'docs', 'test', 'semver:patch']
+    labels: ['bug', 'fix', 'chore', 'refactor', 'semver:patch']
   default: patch
 
-# Kategorie v češtině (hlavičky se vygenerují automaticky)
 categories:
   - title: '✨ Nové funkce'
     labels: ['feature', 'feat', 'enhancement']
@@ -28,18 +26,44 @@ categories:
   - title: '⚠️ Breaking changes'
     labels: ['breaking-change', 'semver:major']
 
-change-template: |
-  - $TITLE (#$NUMBER) @$AUTHOR
-    <details>
-    <summary>Detail</summary>
-
-    $BODY
-
-    </details>
-change-title-escapes: '\<*_&'
+autolabeler:
+  - label: "feature"
+    branch:
+      - "/^feat\\//"
+      - "/^feature\\//"
+    title:
+      - "/^feat(\\(.+\\))?:/i"
+  - label: "fix"
+    branch: ["/^fix\\//", "/^bug\\//"]
+    title: ["/^fix(\\(.+\\))?:/i"]
+  - label: "chore"
+    branch: ["/^chore\\//"]
+    title: ["/^chore(\\(.+\\))?:/i"]
+  - label: "docs"
+    branch: ["/^docs\\//"]
+    title: ["/^docs(\\(.+\\))?:/i"]
+  - label: "breaking-change"
+    title: ["/!:/"]
 
 exclude-labels:
   - 'skip-changelog'
+
+change-template: |
+  - $TITLE (#$NUMBER) @$AUTHOR
+    $BODY
+
+change-title-escapes: '\<*_&'
+
+replacers:
+  - search: "/^(feat|fix|chore|docs|refactor|test|bug|fix|enhancement|enhance)(\\(.+\\))?:\\s*/i"
+    replace: ""
+
+sort-by: merged_at
+sort-direction: descending
+
+exclude-contributors:
+  - "dependabot[bot]"
+  - "renovate[bot]"
 
 header: |
   ## Co je nového
