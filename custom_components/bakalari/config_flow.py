@@ -6,9 +6,11 @@ import logging
 
 from async_bakalari_api import Bakalari
 from async_bakalari_api.bakalari import Schools
+from async_bakalari_api.datastructure import Credentials
 from async_bakalari_api.exceptions import Ex
 from homeassistant import config_entries
 from homeassistant.core import callback
+from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.storage import Store
 import voluptuous as vol
 
@@ -16,12 +18,12 @@ from .const import (
     CONF_ACCESS_TOKEN,
     CONF_CHILDREN,
     CONF_REFRESH_TOKEN,
-    CONF_SERVER,
-    CONF_USERNAME,
     DOMAIN,
     SCHOOLS_CACHE_FILE,
+    ChildRecord,
 )
 from .options_flow import BakalariOptionsFlow
+from .utils import ensure_child_record
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -114,8 +116,9 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             return self.async_abort(reason="reauth_missing_context")
 
         try:
-            async with Bakalari(server) as api:
-                credentials = await api.first_login(username, user_input["password"])
+            session = async_get_clientsession(self.hass)
+            async with Bakalari(server, session=session) as api:
+                credentials: Credentials = await api.first_login(username, user_input["password"])
         except Ex.InvalidLogin:
             return self.async_show_form(
                 step_id="reauth_confirm",
@@ -135,14 +138,10 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             return self.async_abort(reason="reauth_entry_not_found")
 
         children = dict(entry.options.get(CONF_CHILDREN, {}))
-        child = dict(children.get(child_id, {}))
-        child[CONF_ACCESS_TOKEN] = getattr(credentials, "access_token", "") or ""
-        child[CONF_REFRESH_TOKEN] = getattr(credentials, "refresh_token", "") or ""
-        # Keep existing username/server, but refresh username if present
-        if CONF_USERNAME in (self._reauth_data or {}):
-            child[CONF_USERNAME] = username
-        if CONF_SERVER in (self._reauth_data or {}):
-            child[CONF_SERVER] = server
+        child: ChildRecord = ensure_child_record(children, child_id)
+
+        child[CONF_ACCESS_TOKEN] = credentials.access_token or ""
+        child[CONF_REFRESH_TOKEN] = credentials.refresh_token or ""
         children[child_id] = child
 
         self.hass.config_entries.async_update_entry(

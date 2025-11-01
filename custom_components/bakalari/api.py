@@ -8,7 +8,7 @@ from collections.abc import Awaitable, Callable
 from datetime import date, datetime
 import logging
 from time import time
-from typing import Any, Literal, TypedDict, TypeVar
+from typing import Any, Literal, Required, TypedDict, TypeVar
 
 from async_bakalari_api import Bakalari, Komens, Marks, Timetable
 from async_bakalari_api.datastructure import Credentials
@@ -48,10 +48,10 @@ T = TypeVar("T")
 class _ChainStep(TypedDict, total=False):
     """Step in the chain of API calls."""
 
-    method: str
+    method: Required[str]
     args: tuple[Any, ...]
     kwargs: dict[str, Any]
-    follow_result: bool  # If true, call next step in chain if previous step was successful
+    follow_result: bool
 
 
 class BakalariClient:
@@ -190,12 +190,17 @@ class BakalariClient:
                     return await callable_fn(_lib)
 
                 raise ValueError(f"Unsupported mode: {mode}")
-            except (Ex.RefreshTokenRedeemd, Ex.RefreshTokenExpired, Ex.InvalidToken) as err:
+            except (
+                Ex.RefreshTokenRedeemd,
+                Ex.RefreshTokenExpired,
+                Ex.InvalidToken,
+                Ex.InvalidRefreshToken,
+            ) as err:
                 _LOGGER.error(
                     "Authentication error while %s for child_id=%s: %s", label, self.child_id, err
                 )
                 await self._reset_tokens_and_client()
-                await self._start_reauth(reauth_reason or "")
+                await self._start_reauth(reauth_reason or "Invalid credentials")
                 return default
 
             except Exception as e:
@@ -227,12 +232,17 @@ class BakalariClient:
                         last_out = await out if asyncio.iscoroutine(out) else out
                         current = last_out if step.get("follow_result", False) else target
                     return last_out  # type: ignore[return-value] # noqa: TRY300
-                except (Ex.RefreshTokenExpired, Ex.RefreshTokenRedeemd, Ex.InvalidToken) as err:
+                except (
+                    Ex.RefreshTokenExpired,
+                    Ex.RefreshTokenRedeemd,
+                    Ex.InvalidToken,
+                    Ex.InvalidRefreshToken,
+                ) as err:
                     _LOGGER.error(
                         "Auth error while %s for child_id=%s: %s", label, self.child_id, err
                     )
                     await self._reset_tokens_and_client()
-                    await self._start_reauth(reauth_reason or "")
+                    await self._start_reauth(reauth_reason or "Invalid credentials")
                     return default
 
                 except Exception as e:
@@ -257,6 +267,7 @@ class BakalariClient:
 
     def _current_child(self) -> ChildRecord:
         """Get the current child record."""
+
         entry = self._current_entry()
         return entry.options[CONF_CHILDREN][self.child_id]
 
@@ -369,7 +380,7 @@ class BakalariClient:
             self.hass.async_create_task(
                 self.hass.config_entries.flow.async_init(
                     self.entry.domain,
-                    context={"source": SOURCE_REAUTH},
+                    context={"source": SOURCE_REAUTH, "entry_id": self.entry.entry_id},
                     data={
                         "entry_id": self.entry.entry_id,
                         "child_id": self.child_id,
@@ -415,6 +426,7 @@ class BakalariClient:
             if not self._tokens_changed():
                 return
             cred = self.lib.credentials  # use current credentials
+
             entry = self._current_entry()
             new_children = dict(entry.options.get(CONF_CHILDREN, {}))
 
