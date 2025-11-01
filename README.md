@@ -9,9 +9,17 @@ Custom komponenta pro Home Assistant, založená na [async-bakalari-api3](https:
 ## Komponenta je prozatím v testovacím stavu, jednotlivé služby budou postupně přidávány
 
 ## 🚨 Breaking changes
-  - nově je každé dítě jako separátní `Device` s jednotlivými senzory
-  - staré senzory - `Rozvrh`, `Zprávy` jsou zatím ponechány bez rozlišení na `Device` vzhledem k zpětné kompatibilitě
-  - v následujících verzích dojde k automatickému transferu senzorů pod `Device`, bude ale nutné upravit názvy senzorů v Lovelace kartách
+
+Od verze 1.1.0 jsou již senzory migrovány pod `DeviceRegistry`
+ - nově je každé dítě jako separátní `DeviceRegistry` (zařízení v HUBu) s jednotlivými senzory
+ - `uid` senzoru se nezměnilo, ale změnil se název senzoru - nyní dědí jméno z `DeviceRegistry`
+   - nově jsou tedy názvy senzorů takto: `sensor.<device_name>_<sensor_name>`
+   - kde `<device_name>` je jméno dítěte + škola
+   - `friendly_name` je složen z `<sensor_name> - <short_name>`, tedy např. `Rozvrh - Jan`
+
+  - staré senzory se již neaktualizují a nebudou generovány při odebrání a znovupřidání integrace.
+
+  ## ⚠️ ***Po aktualizaci na verzi 1.1.0+ je tedy nutné změnit názvy senzorů v kartách v Lovelace***
 
 ## Instalace (HACS)
 
