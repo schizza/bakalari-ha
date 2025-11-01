@@ -55,7 +55,7 @@ class BakalariTimetableSensor(BakalariEntity, SensorEntity):
             child = cast(Child, args[1])
             super().__init__(coordinator, child)
             self._attr_unique_id = f"{coordinator.entry.entry_id}:{child.key}:timetable"
-            self._attr_name = "Rozvrh"
+            self._attr_name = f"Rozvrh - {child.short_name}"
             return
 
         # Legacy style: (hass, entry, child_id, child_name)
@@ -73,7 +73,7 @@ class BakalariTimetableSensor(BakalariEntity, SensorEntity):
         child = _resolve_child_by_option_key(coord, child_id) or coord.child_list[0]
         super().__init__(coord, child)
         self._attr_unique_id = f"{coord.entry.entry_id}:{child.key}:timetable"
-        self._attr_name = "Rozvrh"
+        self._attr_name = f"Rozvrh - {child.short_name}"
 
     @property
     def native_value(self) -> int:

@@ -55,7 +55,7 @@ class BakalariMessagesSensor(BakalariEntity, SensorEntity):
             child = cast(Child, args[1])
             super().__init__(coordinator, child)
             self._attr_unique_id = f"{coordinator.entry.entry_id}:{child.key}:messages"
-            self._attr_name = "Zprávy"
+            self._attr_name = f"Zprávy - {child.short_name}"
             return
 
         # Legacy style: (hass, entry, child_id, child_name)
@@ -78,7 +78,7 @@ class BakalariMessagesSensor(BakalariEntity, SensorEntity):
 
         # Use new unique_id scheme to allow entity_registry migration later
         self._attr_unique_id = f"{coord.entry.entry_id}:{child.key}:messages"
-        self._attr_name = "Zprávy"
+        self._attr_name = f"Zprávy - {child.short_name}"
 
     @property
     def native_value(self) -> int:

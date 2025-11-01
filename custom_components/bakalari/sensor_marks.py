@@ -29,7 +29,7 @@ class BakalariNewMarksSensor(BakalariEntity, SensorEntity):
         """Initialize the sensor."""
         super().__init__(coordinator, child)
         self._attr_unique_id = f"{coordinator.entry.entry_id}:{child.key}:new_marks"
-        self._attr_name = "Nové známky"
+        self._attr_name = f"Nové známky - {child.short_name}"
 
     @property
     def native_value(self) -> int:
@@ -61,7 +61,7 @@ class BakalariLastMarkSensor(BakalariEntity, SensorEntity):
         """Initialize the sensor."""
         super().__init__(coordinator, child)
         self._attr_unique_id = f"{coordinator.entry.entry_id}:{child.key}:last_mark"
-        self._attr_name = "Poslední známka"
+        self._attr_name = f"Poslední známka - {child.short_name}"
 
     @property
     def native_value(self) -> str | None:
