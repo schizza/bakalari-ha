@@ -5,7 +5,7 @@
 ## ✨ Nové funkce
 
 - Migrace všech senzorů pod `coordinator` (#67)
-  Refaktoring senzorů, tak aby se pro správu dat používal jen koordniator.
+  Refaktoring senzorů, tak aby se pro správu dat používal jen koordinátor.
 
 Tato změna zlepšuje konzistenci dat a snižuje nadbytečné volání API tím, že centralizuje načítání a ukládání dat do mezipaměti.
 Do koordinátoru přibyla podpora pro `Zprávy` a `Rozvrh`
