@@ -17,7 +17,7 @@ Od verze 1.1.0 jsou již senzory migrovány pod `DeviceRegistry`
    - kde `<device_name>` je jméno dítěte + škola
    - `friendly_name` je složen z `<sensor_name> - <short_name>`, tedy např. `Rozvrh - Jan`
 
-  - staré senzory se již neaktualizují a nebudou generovány při odebrání a znovupřidání integrace.
+ - staré senzory se již neaktualizují a nebudou generovány při odebrání a znovupřidání integrace.
 
   ## ⚠️ ***Po aktualizaci na verzi 1.1.0+ je tedy nutné změnit názvy senzorů v kartách v Lovelace***
 
