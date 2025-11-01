@@ -26,9 +26,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up of Bakalari component."""
 
     coord = BakalariCoordinator(hass, entry)
-    await coord.async_config_entry_first_refresh()
+
     hass.data.setdefault(DOMAIN, {})
     hass.data[DOMAIN][entry.entry_id] = {"coordinator": coord}
+    await coord.async_config_entry_first_refresh()
 
     # Device Registry: one device per child
     devreg = dr.async_get(hass)
@@ -54,7 +55,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     hass.services.async_register(DOMAIN, "refresh", _srv_refresh)
 
     # WebSocket API
-    @websocket_api.websocket_command(
+    @websocket_api.websocket_command(  # type: ignore[attr-defined]
         {
             vol.Required("type"): f"{DOMAIN}/get_marks",
             vol.Required("config_entry_id"): str,
@@ -62,7 +63,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             vol.Optional("limit", default=50): int,
         }
     )
-    @websocket_api.async_response
+    @websocket_api.async_response  # type: ignore[attr-defined]
     async def ws_get_marks(hass_, connection, msg):  # noqa: ANN001
         ceid = msg["config_entry_id"]
         limit = msg.get("limit", 50)

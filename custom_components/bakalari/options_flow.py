@@ -141,9 +141,11 @@ class BakalariOptionsFlow(config_entries.OptionsFlow):
             # change school for child
             if self._edit_school_for:
                 self.children[self._edit_school_for][CONF_SCHOOL] = user_input[CONF_SCHOOL]
-                self.children[self._edit_school_for][CONF_SERVER] = self._schools.get_url(
-                    name=user_input[CONF_SCHOOL]
+                url = self._schools.get_url(name=user_input[CONF_SCHOOL])
+                self.children[self._edit_school_for][CONF_SERVER] = (
+                    url if isinstance(url, str) and url else ""
                 )
+
                 self.async_create_entry(title="", data={CONF_CHILDREN: self.children})
                 return await self.async_step_edit_child()
 
@@ -168,6 +170,7 @@ class BakalariOptionsFlow(config_entries.OptionsFlow):
         # we have login data
         if user_input is not None:
             school_url = self._schools.get_url(self._new_child[CONF_SCHOOL])  # pyright: ignore[reportOptionalSubscript]
+            school_url = school_url if isinstance(school_url, str) and school_url else ""
 
             try:
                 async with Bakalari(school_url) as api:
