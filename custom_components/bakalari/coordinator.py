@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import timedelta
+from datetime import date, datetime, timedelta
 import logging
 from random import random
 from typing import Any
@@ -21,6 +21,8 @@ from .const import (
     CONF_CHILDREN,
     CONF_REFRESH_TOKEN,
     CONF_SCAN_INTERVAL,
+    CONF_SCHOOL_YEAR_START_DAY,
+    CONF_SCHOOL_YEAR_START_MONTH,
     CONF_SERVER,
     CONF_USER_ID,
     CONF_USERNAME,
@@ -30,7 +32,7 @@ from .const import (
     ChildRecord,
     ChildrenMap,
 )
-from .utils import ensure_children_dict, make_child_key
+from .utils import ensure_children_dict, make_child_key, school_year_bounds
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -153,17 +155,26 @@ class BakalariCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     async def _async_update_data(self) -> dict[str, Any]:
         """Fetch and prepare marks, messages and timetable for all children."""
         try:
-            marks_by_child: dict[str, list[dict[str, Any]]] = {}
+            start_year, end_year = school_year_bounds(
+                dt.now().date(), CONF_SCHOOL_YEAR_START_MONTH, CONF_SCHOOL_YEAR_START_DAY
+            )
+
+            subjects_by_child: dict[str, dict[str, dict[str, Any]]] = {}
+            marks_by_child_subject: dict[str, dict[str, list[dict[str, Any]]]] = {}
+            marks_flat_by_child: dict[str, list[dict[str, Any]]] = {}
+
+            # removed: unused marks_by_child variable
             messages_by_child: dict[str, list[dict[str, Any]]] = {}
             timetable_by_child: dict[str, list[Any]] = {}
 
             # Sequential fetch (can be parallelized if needed)
             for ch in self.child_list:
-                raw = await self._fetch_child(ch)
+                raw = await self._fetch_child(ch, start_year, end_year)
 
-                # Marks
-                marks = self._parse_marks(ch, raw)
-                marks_by_child[ch.key] = marks
+                snap = raw.get("snapshot") or {}
+                subjects_by_child[ch.key] = snap.get("subjects", {})
+                marks_by_child_subject[ch.key] = snap.get("marks_grouped", {})
+                marks_flat_by_child[ch.key] = snap.get("marks_flat", [])
 
                 # Messages
                 messages = self._parse_messages(ch, raw)
@@ -175,17 +186,37 @@ class BakalariCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         except Exception as err:  # noqa: BLE001
             raise UpdateFailed(str(err)) from err
         else:
+            # Compute is_new per mark (before firing events) for backward compatibility
+            annotated_marks_by_child: dict[str, list[dict[str, Any]]] = {}
+            for ck, items in marks_flat_by_child.items():
+                annotated: list[dict[str, Any]] = []
+                for it in items or []:
+                    mark_id = str(it.get("id") or "").strip()
+                    is_new = bool(mark_id) and ((ck, mark_id) not in self._seen)
+                    annotated.append({**it, "is_new": is_new})
+                annotated_marks_by_child[ck] = annotated
+
             # Diff → fire events for new marks
-            self._fire_new_events(marks_by_child)
+            self._fire_new_events(marks_flat_by_child)
 
             return {
-                "marks_by_child": marks_by_child,
+                "subjects_by_child": subjects_by_child,
+                "marks_by_child_subject": marks_by_child_subject,
+                # Backward-compatible flat marks list expected by existing sensors
+                "marks_by_child": annotated_marks_by_child,
+                "marks_flat_by_child": marks_flat_by_child,
+                "school_year": {
+                    "start": start_year.isoformat(),
+                    "end_exclusive": end_year.isoformat(),
+                },
                 "messages_by_child": messages_by_child,
                 "timetable_by_child": timetable_by_child,
                 "last_sync_ok": True,
             }
 
-    async def _fetch_child(self, child: Child) -> dict[str, Any]:
+    async def _fetch_child(
+        self, child: Child, date_from: datetime | date, date_to: datetime | date
+    ) -> dict[str, Any]:
         """Fetch raw payloads (marks, messages, timetable) for a specific child via BakalariClient."""
 
         # Map composite key to original options key (usually user_id)
@@ -196,8 +227,18 @@ class BakalariCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             client = BakalariClient(self.hass, self.entry, opt_key)
             self._clients[child.key] = client  # cache per child
 
-        # Marks
-        subjects = await client.async_get_marks()
+        # Marks snapshot (subjects, grouped, flat)
+        dt_from = (
+            datetime.combine(date_from, datetime.min.time())
+            if isinstance(date_from, date)
+            else date_from
+        )
+        dt_to = (
+            datetime.combine(date_to, datetime.min.time()) if isinstance(date_to, date) else date_to
+        )
+        snapshot = await client.async_get_marks_snapshot(
+            date_from=dt_from, date_to=dt_to, to_dict=True, order="desc"
+        )
 
         # Messages
         messages = await client.async_get_messages()
@@ -211,63 +252,11 @@ class BakalariCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             weeks.append(w)
 
         return {
-            "subjects": subjects,
+            "snapshot": snapshot,
             "messages": messages,
             "timetable": weeks,
+            "_range": (date_from, date_to),
         }
-
-    def _parse_marks(self, child: Child, raw: dict[str, Any]) -> list[dict[str, Any]]:
-        """Normalize raw marks into a flat list of dicts."""
-        subjects = raw.get("subjects") or []
-        items: list[dict[str, Any]] = []
-        try:
-            for subj in subjects:
-                subj_id = getattr(subj, "id", None)
-                subj_abbr = getattr(subj, "abbr", "") or ""
-                subj_name = getattr(subj, "name", "") or ""
-
-                # subjects.marks is a MarksRegistry (iterable)
-                marks_iter = list(subj.marks) if hasattr(subj, "marks") else []
-                for m in marks_iter:
-                    mark_id = getattr(m, "id", None)
-                    if not mark_id:
-                        continue
-                    marktext_obj = getattr(m, "marktext", None)
-                    mark_text = getattr(marktext_obj, "text", None) if marktext_obj else None
-                    points_text = getattr(m, "points_text", None)
-                    max_points = getattr(m, "max_points", None)
-                    is_points = bool(getattr(m, "is_points", False))
-                    dt_val = getattr(m, "date", None)
-                    date_iso = dt_val.isoformat() if getattr(dt_val, "isoformat", None) else None
-
-                    items.append(
-                        {
-                            "id": str(mark_id),
-                            "child_key": child.key,
-                            "user_id": child.user_id,
-                            "subject_id": str(getattr(m, "subject_id", subj_id) or ""),
-                            "subject_abbr": str(subj_abbr),
-                            "subject_name": str(subj_name),
-                            "caption": getattr(m, "caption", None),
-                            "mark_text": mark_text,
-                            "points_text": points_text,
-                            "max_points": max_points,
-                            "is_points": is_points,
-                            "date": date_iso,
-                            "is_new": bool(getattr(m, "is_new", False)),
-                            "teacher": getattr(m, "teacher", None),
-                            "theme": getattr(m, "theme", None),
-                        }
-                    )
-        except Exception:  # noqa: BLE001
-            _LOGGER.exception("Failed to parse marks for child_key=%s", child.key)
-
-        # Sort by date desc if available, keep stable otherwise
-        try:
-            items.sort(key=lambda it: it.get("date") or "", reverse=True)
-        except Exception:
-            _LOGGER.debug("Failed to sort marks for child_key=%s", child.key)
-        return items
 
     def _parse_messages(self, child: Child, raw: dict[str, Any]) -> list[dict[str, Any]]:
         """Normalize raw messages into a list of dicts."""

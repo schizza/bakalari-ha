@@ -21,6 +21,8 @@ CONF_NAME: Final = "name"
 CONF_SURNAME: Final = "surname"
 CONF_SCHOOL: Final = "school"
 CONF_SCAN_INTERVAL: Final = "scan_interval"
+CONF_SCHOOL_YEAR_START_DAY: Final = 1
+CONF_SCHOOL_YEAR_START_MONTH: Final = 9
 DEFAULT_SCAN_INTERVAL: Final = 900
 
 
