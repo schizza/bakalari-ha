@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import date
 from typing import Any, cast
 import uuid
 
@@ -182,3 +183,19 @@ def device_ident(entry_id: str, child_key: str) -> tuple[str, str]:
     """
     # identification tuple for HA device registry
     return (DOMAIN, f"{entry_id}:{child_key}")
+
+
+def school_year_bounds(
+    ref_day: date, start_month: int = 9, start_day: int = 1
+) -> tuple[date, date]:
+    """Calculate the start and end dates of the school year for reference day.
+
+    The start date is the first day of the school year, which is the first day of the month specified by start_month.
+    Default: 1.9. XXXX - 31.8. XXXX+1
+    """
+    start = date(ref_day.year, start_month, start_day)
+
+    if ref_day < start:
+        start = date(ref_day.year - 1, start_month, start_day)
+    end = date(start.year + 1, start_month, start_day)
+    return start, end

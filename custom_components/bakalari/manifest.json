@@ -8,6 +8,6 @@
   "iot_class": "cloud_polling",
   "issue_tracker": "https://github.com/schizza/bakalari-ha/issues",
   "loggers": ["custom_components.bakalari", "Bakalari API"],
-  "requirements": ["async-bakalari-api==0.5.0"],
+  "requirements": ["async-bakalari-api==0.6.0"],
   "version": "1.1.0"
 }
