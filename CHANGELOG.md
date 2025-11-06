@@ -1,5 +1,23 @@
 # Changelog
 
+# v1.2.0
+
+## ✨ Nové funkce
+
+- Enhances marks data and adds sensors (#71) @schizza
+  - Přidán senzor všech námek pro dítě, přidána pre-subject agregace
+
+## 🧹 Refaktoring / Údržba
+
+- bump verze verze API na 0.6.0
+---
+## 📦 Technické
+- Verze integrace: `v1.2.0`
+- Vyžaduje API verzi `0.6.0+`
+- Minimální verze Home Assistant: `2025.9+`
+- Předchozí tag: `v1.1.0`
+- Autoři přispěli: @schizza
+
 # v1.1.0
 
 ## ✨ Nové funkce

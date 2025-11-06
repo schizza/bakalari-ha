@@ -38,7 +38,9 @@ Od verze 1.1.0 jsou již senzory migrovány pod `DeviceRegistry`
   - tento senzor stahuje rozvrh na aktuální týden +- 7 dní
 
 - Známky
-  - prozatím zobrazujeme pouze poslední přijatou známku a počet nových známek od posledního stažení
+  - ze školního serveru se již stahují všechny známky
+  - známky jsou agregované per-předmět
+  - zobrazení poslední přijaté známky nadále funguje bez rozdílu
   - přidána možnost `fire_event` pro vyvolání události při nové známce, bude sloužit k oznámení např. v mobilní aplikaci
   - přidána možnost Websocketu
   - další funkcionality v následujících verzích
