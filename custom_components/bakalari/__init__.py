@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import logging
+
 from homeassistant.components import websocket_api
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
@@ -13,7 +15,44 @@ from .const import DOMAIN, MANUFACTURER, MODEL, PLATFORMS
 from .coordinator import BakalariCoordinator
 from .utils import device_ident
 
+_LOGGER = logging.getLogger(__name__)
+
+
 CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
+
+
+class CustomFormatter(logging.Formatter):
+    """Custom formater for module."""
+
+    black = "\u001b[30m"
+    yellow = "\u001b[33m"
+    red = "\u001b[31m"
+    bold_red = "\x1b[31;1m"
+    reset = "\u001b[0m"
+    green = "\u001b[32m"
+    grey = "\u001b[30m"
+    blue = "\u001b[34m"
+    magenta = "\u001b[35m"
+    cyan = "\u001b[36m"
+    white = "\u001b[37m"
+
+    _format = f"%(asctime)s - %(levelname)s [%(name)s]\n{reset}Message: %(message)s)"
+    dateformat = "%d/%m/%Y %H:%M:%S"
+
+    FORMATS = {
+        logging.DEBUG: blue + _format + reset,
+        logging.INFO: green + _format + reset,
+        logging.WARNING: yellow + _format + reset,
+        logging.ERROR: bold_red + _format + reset,
+        logging.CRITICAL: bold_red + _format + reset,
+    }
+
+    def format(self, record):
+        """Format string."""
+
+        log_fmt = self.FORMATS.get(record.levelno)
+        formatter = logging.Formatter(log_fmt, datefmt=self.dateformat)
+        return formatter.format(record)
 
 
 async def async_setup(hass: HomeAssistant, config) -> bool:
@@ -22,8 +61,19 @@ async def async_setup(hass: HomeAssistant, config) -> bool:
     return True
 
 
+def _dev_console_handler_for(logger: logging.Logger) -> None:
+    console_formater = CustomFormatter()
+    if not any(isinstance(h, logging.StreamHandler) for h in logger.handlers):
+        h = logging.StreamHandler()
+        h.setLevel(logging.NOTSET)
+        h.setFormatter(console_formater)
+        logger.addHandler(h)
+
+
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up of Bakalari component."""
+    _dev_console_handler_for(logging.getLogger("custom_components.bakalari"))
+    _LOGGER.propagate = False
 
     coord = BakalariCoordinator(hass, entry)
 

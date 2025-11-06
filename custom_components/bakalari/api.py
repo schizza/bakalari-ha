@@ -531,3 +531,59 @@ class BakalariClient:
                 {"method": "get_marks_all", "follow_result": True},
             ],
         )
+
+    async def async_get_marks_snapshot(
+        self,
+        *,
+        date_from: datetime | date | None = None,
+        date_to: datetime | date | None = None,
+        subject_id: str | None = None,
+        to_dict: bool = True,
+        order: str = "desc",
+    ) -> dict[str, Any]:
+        """Get compact snapshot of marks (subjects, grouped, flat) using new API."""
+
+        # Normalize date inputs to datetime (library expects datetime)
+        df = None
+        dt_to = None
+        if date_from is not None:
+            if isinstance(date_from, datetime):
+                df = date_from
+            else:
+                df = datetime.combine(date_from, datetime.min.time())
+        if date_to is not None:
+            if isinstance(date_to, datetime):
+                dt_to = date_to
+            else:
+                dt_to = datetime.combine(date_to, datetime.min.time())
+
+        default: dict[str, Any] = {"subjects": {}, "marks_grouped": {}, "marks_flat": []}
+        _LOGGER.debug(
+            "[BakalariClient.async_get_marks_snapshot]: Fetching marks snapshot (from=%s to=%s subject_id=%s order=%s)",
+            df,
+            dt_to,
+            subject_id,
+            order,
+        )
+
+        return await self._api_call(
+            label="fetching marks snapshot",
+            reauth_reason="marks",
+            default=default,
+            mode="chain",
+            chain_module=Marks,
+            chain=[
+                {"method": "fetch_marks"},
+                {
+                    "method": "get_snapshot",
+                    "kwargs": {
+                        "date_from": df,
+                        "date_to": dt_to,
+                        "subject_id": subject_id,
+                        "order": order,
+                        "to_dict": to_dict,
+                    },
+                    "follow_result": True,
+                },
+            ],
+        )

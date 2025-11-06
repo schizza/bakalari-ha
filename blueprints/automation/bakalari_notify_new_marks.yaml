@@ -1,0 +1,34 @@
+blueprint:
+  name: Bakaláři – oznámení nových známek
+  description: Odeslat notifikaci při změně počtu nových známek (dnes).
+  domain: automation
+  input:
+    sensor_entity:
+      name: Senzor nových známek
+      selector:
+        entity:
+          domain: sensor
+    notify_service:
+      name: Notifikační služba
+      default: notify.notify
+      selector:
+        text:
+trigger:
+  - platform: state
+    entity_id: !input sensor_entity
+action:
+  - variables:
+      count: "{{ states(!input sensor_entity) | int(0) }}"
+      latest: "{{ state_attr(!input sensor_entity, 'latest') or [] }}"
+  - choose:
+      - conditions: "{{ count > 0 }}"
+        sequence:
+          - service: "{{ !input notify_service }}"
+            data:
+              title: "Bakaláři – nové známky ({{count}})"
+              message: >-
+                {% for m in latest[:5] -%}
+                • {{ m.subject_id }}: {{ m.caption or 'bez popisu' }} ({{ m.date }}) – {{ m.marktext }}
+                {% endfor -%}
+mode: restart
+

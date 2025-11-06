@@ -12,6 +12,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from .const import CONF_CHILDREN, CONF_SERVER, CONF_USER_ID, DOMAIN
 from .coordinator import BakalariCoordinator
 from .sensor_marks import (
+    BakalariAllMarksSensor,
     BakalariLastMarkSensor,
     BakalariNewMarksSensor,
 )
@@ -39,6 +40,7 @@ async def async_setup_entry(
     for child in coord.child_list:
         entities.append(BakalariNewMarksSensor(coord, child))
         entities.append(BakalariLastMarkSensor(coord, child))
+        entities.append(BakalariAllMarksSensor(coord, child))
         entities.append(BakalariMessagesSensor(coord, child))
         entities.append(BakalariTimetableSensor(coord, child))
 
