@@ -2,16 +2,56 @@
 
 # v1.2.0
 
+## v1.2.0 - 2025-11-06
+
+### v1.2.0
+
+#### ✨ Nové funkce
+
+- Enhances marks data and adds sensors (#71) @schizza
+  - Přidán senzor pro všechy známek dítěte, přidána pre-subject agregace
+  
+
+#### 🐛 Opravy chyb
+
+- Opraven logger, nyní již kopíruje nastavení `levelu` z `configuration.yaml`
+- přidány `unity` testy pro `coordinator`
+
+#### 🧹 Refaktoring / Údržba
+
+- bump verze verze API na 0.6.0
+
+#### 🗳️ Hlasování o chování zpráv ve FE:
+
+- pomozte vylepšit kartu `Zprávy` a její chování v Lovelace
+- hlasování zde: https://github.com/schizza/Bakalari-ha-frontend/discussions/42
+
+
+---
+
+#### 📦 Technické
+
+- Verze integrace: `v1.2.0`
+- Vyžaduje API verzi `0.6.0+`
+- Minimální verze Home Assistant: `2025.9+`
+- Předchozí tag: `v1.1.0`
+- Autoři přispěli: @schizza
+
 ## ✨ Nové funkce
 
 - Enhances marks data and adds sensors (#71) @schizza
   - Přidán senzor všech námek pro dítě, přidána pre-subject agregace
+  
 
 ## 🧹 Refaktoring / Údržba
 
 - bump verze verze API na 0.6.0
+
+
 ---
+
 ## 📦 Technické
+
 - Verze integrace: `v1.2.0`
 - Vyžaduje API verzi `0.6.0+`
 - Minimální verze Home Assistant: `2025.9+`
@@ -50,6 +90,7 @@ Podpora migrace jedinečného ID do nového formátu založeného na ID konfigur
   - Přidává zámek, který brání souběžným požadavkům na reautorizaci pro stejné dítě.
   - Zavádí správu stavu pro žádosti o reautorizaci, sleduje, kdy bylo znovupřihlášení vyžádáno.
   - Aktualizuje úrovně logování na „debug“ pro méně ukecaný výstup za běžných okolností a zpřehledňuje logovací zprávy.
+  
 
 **Improves authentication and sensor naming** (#63) @schizza
 
@@ -60,10 +101,14 @@ Podpora migrace jedinečného ID do nového formátu založeného na ID konfigur
 ## 🧹 Refaktoring / Údržba
 
 **Improves Bakalari API handling and reauthentication** (#62) @schizza
+
 - Refaktorizace integraci Bakalářů pro zlepšení práce s API, správu tokenů.
   - Implementace centrálního wrapperu pro API volání, která zajišťuje správné zpracování autentizace a chyb.
     - Zavádí proces reautorizace a mechanismus pro resetování tokenu v případě problémů s autentizací.
     - Migrace API endpointů na nový wrapper pro jednotné zpracování chyb a autentizace
+    
+  
+
 
 ---
 
@@ -82,22 +127,32 @@ Podpora migrace jedinečného ID do nového formátu založeného na ID konfigur
 **Implementace `DeviceRegistry`** (#60) @schizza
 
 - Přidána podpora `Device Registry` pro komponentu Bakaláři – vytváří zařízení pro každý dětský účet a zpřístupňuje verze knihoven.
+  
 - zavádí nové služby pro notifikace - nově přijaté známky, vyvolání obnovení dat, atd.
+  
 - Přidán WebSocket API pro získávání známek a aktualizuje zpracování verzí.
+  
 - Opravuje https://github.com/schizza/bakalari-ha/issues/46
-
+  
 - Přidány senzory známek využívající data z koordinátoru (prozatím pouze poslední přijatá známka)
+  
 - Implementuje nové senzory pro zobrazení nových a posledních známek každého dítěte
+  
 - Staré senzory zůstávají kvůli zpětné kompatibilitě a budou odstraněny v budoucí aktualizaci po dokončení migrace.
+  
 
 ## 🧹 Refaktoring / Údržba
 
 **Rozdělení senzorů do samostatných souborů:**
+
 - Zlepšuje organizaci a udržovatelnost kódu.
 - Zachovává zpětnou kompatibilitu ponecháním starých entit.
 
+
 ---
+
 ## 📦 Technické
+
 - Verze integrace: `v1.0.0`
 - Vyžaduje API verze: `0.5.0`
 - Minimální verze Home Assistant: `2025.9+`
@@ -109,26 +164,29 @@ Podpora migrace jedinečného ID do nového formátu založeného na ID konfigur
 ## ✨ Nové funkce
 
 Podpora Rozvrhu `Timetable module`
-  -   V API přidána možnost stažení aktuálního a permanentního rozvrhu.
+
+- V API přidána možnost stažení aktuálního a permanentního rozvrhu.
 
 ## Breaking changes
 
- Karty Lovelace přesunuty do vlastního repozitáře  (schizza/bakalari-ha-frontend)
- - smazan www/bakalari-cards.js
- - karty pro Lovelace se nyní instalují přes HACS ve vlastním repozitáři
+Karty Lovelace přesunuty do vlastního repozitáře  (schizza/bakalari-ha-frontend)
+
+- smazan www/bakalari-cards.js
+- karty pro Lovelace se nyní instalují přes HACS ve vlastním repozitáři
 
 ## 🐛 Opravy chyb
 
- - funkce pro `timetable_actual` stahuje v módu dnes +- 7 dní (reálně tedy 3 týdny rozvrhu)
+- funkce pro `timetable_actual` stahuje v módu dnes +- 7 dní (reálně tedy 3 týdny rozvrhu)
 
 ## 🧹 Refaktoring / Údržba
 
 - Fix: Struktura ZIP souboru pro release
-
+  
 - Chore/download counts (#34) (#35) @schizza
-
+  
   * Enable zip_release for Bakaláři HA
   * Add GitHub Actions workflow for ZIP asset release
+  
 
 Added download badges for total and latest releases.
 
@@ -138,8 +196,11 @@ Added download badges for total and latest releases.
 * Add initial changelog file
 * Add workflow to update CHANGELOG on release
 
+
 ---
+
 ## 📦 Technické
+
 - Verze integrace: `v0.1.1`
 - Minimální verze Home Assistant: `2025.9+`
 - Předchozí tag: `v0.1.0`
