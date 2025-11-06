@@ -84,20 +84,20 @@ all: ci coverage validate-local check-versions
 
 # ====== Lint & test ======
 lint:
-	$(RUFF) check .
-	$(RUFF) format --check .
+	@$(RUFF) check .
+	@$(RUFF) format --check .
 
 fmt:
-	$(RUFF) format .
+	@$(RUFF) format .
 
 fix:
-	$(RUFF) check --fix .
+	@$(RUFF) check --fix .
 
 test:
-	$(PYTEST) -q
+	@$(PYTEST) -q
 
 coverage:
-	$(PYTEST) --cov=custom_components.bakalari --cov-report=term-missing
+	@$(PYTEST) --cov=custom_components.bakalari --cov-report=term-missing
 
 ci: lint test
 
@@ -140,35 +140,35 @@ validate-all: ci validate-local
 
 # ====== Spouštění Home Assistanta z venvu ======
 run:
-	$(PYTHON) -m homeassistant --config $(HA_CONFIG)
+	@$(PYTHON) -m homeassistant --config $(HA_CONFIG)
 
 run-debug:
-	$(PYTHON) -m homeassistant --config $(HA_CONFIG) --debug
+	@$(PYTHON) -m homeassistant --config $(HA_CONFIG) --debug
 
 run-no-cache:
-	$(PYTHON) -m homeassistant --config $(HA_CONFIG) --skip-pip
+	@$(PYTHON) -m homeassistant --config $(HA_CONFIG) --skip-pip
 
 # ====== Úklid ======
 clean:
-	rm -rf .pytest_cache .ruff_cache build dist *.egg-info
+	@rm -rf .pytest_cache .ruff_cache build dist *.egg-info
 	@echo "🧹 Cache uklizena."
 
 distclean: clean
-	rm -rf $(VENV) $(HASSFEST_CORE_DIR)
+	@rm -rf $(VENV) $(HASSFEST_CORE_DIR)
 	@echo "🧨 .venv i .ha-core smazány."
 
 # ======= Bump verze ======
 
 bump-ha:
 	@if [ -z "$(NEW)" ]; then echo "Použití: make bump-ha NEW=<verze>"; exit 1; fi
-	bump-my-version bump --allow-dirty --no-commit --config-file ./bump-ha.toml --current-version "$$(tomlq -f ./bump-ha.toml '.tool.bumpversion.current_version' 2>/dev/null || sed -n "s/^current_version = \"\(.*\)\"/\1/p" ./bump-ha.toml | head -1)" --new-version "$(NEW)"
+	@bump-my-version bump --allow-dirty --no-commit --config-file ./bump-ha.toml --current-version "$$(tomlq -f ./bump-ha.toml '.tool.bumpversion.current_version' 2>/dev/null || sed -n "s/^current_version = \"\(.*\)\"/\1/p" ./bump-ha.toml | head -1)" --new-version "$(NEW)"
 
 bump-bakalari:
 	@if [ -z "$(NEW)" ]; then echo "Použití: make bump-bakalari NEW=<verze>"; exit 1; fi
-	bump-my-version bump --allow-dirty --no-commit --config-file ./bump-bakalari.toml --current-version "$$(tomlq -f ./bump-bakalari.toml '.tool.bumpversion.current_version' 2>/dev/null || sed -n "s/^current_version = \"\(.*\)\"/\1/p" ./bump-bakalari.toml | head -1)" --new-version "$(NEW)"
+	@bump-my-version bump --allow-dirty --no-commit --config-file ./bump-bakalari.toml --current-version "$$(tomlq -f ./bump-bakalari.toml '.tool.bumpversion.current_version' 2>/dev/null || sed -n "s/^current_version = \"\(.*\)\"/\1/p" ./bump-bakalari.toml | head -1)" --new-version "$(NEW)"
 bump-version:
 	@if [ -z "$(NEW)" ]; then echo "Použití: make bump-version NEW=<verze>"; exit 1; fi
-	bump-my-version bump --allow-dirty --no-commit --config-file ./bump-version.toml --current-version "$$(tomlq -f ./bump-version.toml '.tool.bumpversion.current_version' 2>/dev/null || sed -n "s/^current_version = \"\(.*\)\"/\1/p" ./bump-version.toml | head -1)" --new-version "$(NEW)"
+	@bump-my-version bump --allow-dirty --no-commit --config-file ./bump-version.toml --current-version "$$(tomlq -f ./bump-version.toml '.tool.bumpversion.current_version' 2>/dev/null || sed -n "s/^current_version = \"\(.*\)\"/\1/p" ./bump-version.toml | head -1)" --new-version "$(NEW)"
 
 check-versions:
 	@echo "🔍 Kontrola konzistence verzí..."
