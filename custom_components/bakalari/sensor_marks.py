@@ -118,9 +118,12 @@ def _parse_numeric_mark(item: dict[str, Any]) -> tuple[float | None, float]:
     return val, w
 
 
-def _aggregate_marks_for_child(coord: BakalariCoordinator, child_key: str) -> dict[str, Any]:
+def _aggregate_marks_for_child(
+    coord: BakalariCoordinator, child_key: str, items: list[dict[str, Any]] | None = None
+) -> dict[str, Any]:
     """Aggregate marks by subject and compute overall statistics for a child."""
-    items = _get_items_for_child(coord, child_key)
+    if not items:
+        items = _get_items_for_child(coord, child_key)
 
     by_subject: dict[str, dict[str, Any]] = {}
     total = len(items)
@@ -254,7 +257,8 @@ class BakalariSubjectMarksSensor(BakalariEntity, SensorEntity):
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
         """Return subject details, stats and recent marks."""
-        agg = _aggregate_marks_for_child(self.coordinator, self.child.key)
+        items = _get_items_for_child(self.coordinator, self.child.key)
+        agg = _aggregate_marks_for_child(self.coordinator, self.child.key, items)
         subjects = agg.get("by_subject", []) or []
         info = next(
             (s for s in subjects if s.get("subject_key") == self._subject_key),
@@ -262,9 +266,8 @@ class BakalariSubjectMarksSensor(BakalariEntity, SensorEntity):
         )
 
         # Collect recent marks for this subject (limit to 30 to keep attributes manageable)
-        items = _get_items_for_child(self.coordinator, self.child.key)
         sitems = [it for it in items if self._matches_subject(it)]
-        recent = sitems if sitems else []  #  Limit sitems[:30] if ...
+        recent = sitems[:30] if sitems else []
 
         return {
             "child_key": self.child.key,
