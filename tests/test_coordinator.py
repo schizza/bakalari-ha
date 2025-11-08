@@ -134,7 +134,7 @@ async def test_coordinator_builds_snapshot_and_emits_events(monkeypatch: pytest.
 
     loop = asyncio.get_event_loop()
     hass = FakeHass(loop)
-    ha_frame._hass.hass = hass
+    ha_frame._hass.hass = hass  # pyright: ignore[]
     entry = FakeConfigEntry(
         entry_id="entry-1",
         options={
@@ -242,7 +242,7 @@ async def test_coordinator_event_diff_only_new(monkeypatch: pytest.MonkeyPatch):
     loop = asyncio.get_event_loop()
     hass = FakeHass(loop)
 
-    ha_frame._hass.hass = hass
+    ha_frame._hass.hass = hass  # pyright: ignore[]
     entry = FakeConfigEntry(
         entry_id="entry-2",
         options={
@@ -312,7 +312,7 @@ async def test_coordinator_child_mapping_and_keys(monkeypatch: pytest.MonkeyPatc
     loop = asyncio.get_event_loop()
     hass = FakeHass(loop)
 
-    ha_frame._hass.hass = hass
+    ha_frame._hass.hass = hass  # pyright: ignore[]
     opts_children = {
         "alpha": _make_child_options("servA", "userA", name="Anna"),
         "beta": _make_child_options("servB", "userB", name="Boris"),
