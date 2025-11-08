@@ -7,11 +7,6 @@ import contextlib
 from types import SimpleNamespace
 from typing import Any
 
-from homeassistant.helpers import frame as ha_frame
-import pytest
-
-from custom_components.bakalari.const import CONF_CHILDREN, CONF_SERVER, CONF_USER_ID
-from custom_components.bakalari.coordinator import BakalariCoordinator, Child
 from custom_components.bakalari.sensor_helpers import (
     build_subjects_listener,
     create_initial_entities,
@@ -19,6 +14,11 @@ from custom_components.bakalari.sensor_helpers import (
     derive_subjects_from_data,
     seed_created_subjects_from_data,
 )
+from homeassistant.helpers import frame as ha_frame
+import pytest
+
+from custom_components.bakalari.const import CONF_CHILDREN, CONF_SERVER, CONF_USER_ID
+from custom_components.bakalari.coordinator import BakalariCoordinator, Child
 
 
 class FakeCoordinator:
