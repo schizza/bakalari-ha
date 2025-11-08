@@ -84,7 +84,9 @@ all: ci coverage validate-local check-versions
 
 # ====== Lint & test ======
 lint:
+	@echo -n "Ruff check : "
 	@$(RUFF) check .
+	@echo -n "Ruff format: "
 	@$(RUFF) format --check .
 
 fmt:

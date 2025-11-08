@@ -24,6 +24,19 @@ exclude = [
   "tests",
   "tests.*",
 ]
+
+[tool.ruff]
+target-version = "py313"
+line-length = 88
+src = ["custom_components", "tests"]
+
+[tool.ruff.format]
+docsstring-code-format = true
+docsstring-code-inline-length = 88
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM", "RUF"]
+
 [tool.ruff.lint.isort]
 known-first-party = ["custom_components.bakalari"]
 
