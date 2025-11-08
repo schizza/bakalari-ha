@@ -140,6 +140,7 @@ def _aggregate_marks_for_child(coord: BakalariCoordinator, child_key: str) -> di
         if subj_key not in by_subject:
             by_subject[subj_key] = {
                 "subject_id": subj_id,
+                "subject_key": subj_key,
                 "subject_abbr": subj_abbr or None,
                 "subject_name": subj_name or None,
                 "count": 0,
@@ -210,6 +211,67 @@ def _aggregate_marks_for_child(coord: BakalariCoordinator, child_key: str) -> di
         "by_subject": subjects,
         "recent": items[:20] if items else [],
     }
+
+
+class BakalariSubjectMarksSensor(BakalariEntity, SensorEntity):
+    """Per-subject sensor exposing mark count and basic stats for a single subject."""
+
+    _attr_icon = "mdi:book-education-outline"
+    _attr_translation_key = "subject_marks"
+    _attr_has_entity_name = True
+
+    def __init__(
+        self,
+        coordinator: BakalariCoordinator,
+        child: Child,
+        subject_key: str,
+        label: str | None = None,
+    ) -> None:
+        """Initialize the sensor for a specific subject."""
+        super().__init__(coordinator, child)
+        self._subject_key = str(subject_key).strip()
+        display = (label or self._subject_key).strip() or "Předmět"
+        self._attr_unique_id = (
+            f"{coordinator.entry.entry_id}:{child.key}:subject:{self._subject_key}"
+        )
+        self._attr_name = f"Známky {display} - {child.short_name}"
+
+    def _matches_subject(self, item: dict[str, Any]) -> bool:
+        """Return True if the given mark item belongs to this sensor's subject."""
+        subj_id = str(item.get("subject_id") or item.get("subject") or "").strip() or None
+        subj_abbr = str(item.get("subject_abbr") or "").strip()
+        subj_name = str(item.get("subject_name") or "").strip()
+        key = subj_id or subj_abbr or subj_name or "unknown"
+        return key == self._subject_key
+
+    @property
+    def native_value(self) -> int:
+        """Return total number of marks for this subject."""
+        items = _get_items_for_child(self.coordinator, self.child.key)
+        sitems = [it for it in items if self._matches_subject(it)]
+        return len(sitems)
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Return subject details, stats and recent marks."""
+        agg = _aggregate_marks_for_child(self.coordinator, self.child.key)
+        subjects = agg.get("by_subject", []) or []
+        info = next(
+            (s for s in subjects if s.get("subject_key") == self._subject_key),
+            None,
+        )
+
+        # Collect recent marks for this subject (limit to 30 to keep attributes manageable)
+        items = _get_items_for_child(self.coordinator, self.child.key)
+        sitems = [it for it in items if self._matches_subject(it)]
+        recent = sitems if sitems else []  #  Limit sitems[:30] if ...
+
+        return {
+            "child_key": self.child.key,
+            "subject_key": self._subject_key,
+            "subject": info,
+            "recent": recent,
+        }
 
 
 class BakalariAllMarksSensor(BakalariEntity, SensorEntity):

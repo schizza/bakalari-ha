@@ -11,13 +11,12 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import CONF_CHILDREN, CONF_SERVER, CONF_USER_ID, DOMAIN
 from .coordinator import BakalariCoordinator
-from .sensor_marks import (
-    BakalariAllMarksSensor,
-    BakalariLastMarkSensor,
-    BakalariNewMarksSensor,
+from .sensor_helpers import (
+    build_subjects_listener,
+    create_initial_entities,
+    create_subject_entities_for_child,
+    seed_created_subjects_from_data,
 )
-from .sensor_messages import BakalariMessagesSensor
-from .sensor_timetable import BakalariTimetableSensor
 from .utils import ensure_children_dict, make_child_key
 
 _LOGGER = logging.getLogger(__name__)
@@ -29,22 +28,25 @@ async def async_setup_entry(
     hass: HomeAssistant, entry: config_entries.ConfigEntry, async_add_entities: AddEntitiesCallback
 ):
     """Set up Bakalari sensors from a config entry."""
-
     data = hass.data.get(DOMAIN, {}).get(entry.entry_id, {})
     coord: BakalariCoordinator = data["coordinator"]
 
     entities = []
+    data_now = coord.data or {}
 
-    # Legacy messages/timetable sensors have been removed; unique_id migration is handled at platform level.
-    # Setup new sensors that will use coordinator
+    # Base sensors and initial per-subject sensors
     for child in coord.child_list:
-        entities.append(BakalariNewMarksSensor(coord, child))
-        entities.append(BakalariLastMarkSensor(coord, child))
-        entities.append(BakalariAllMarksSensor(coord, child))
-        entities.append(BakalariMessagesSensor(coord, child))
-        entities.append(BakalariTimetableSensor(coord, child))
+        entities.extend(create_initial_entities(coord, child))
+        try:
+            entities.extend(create_subject_entities_for_child(coord, child, data_now))
+        except Exception:
+            _LOGGER.exception("Failed to create per-subject sensors for child_key=%s", child.key)
 
     async_add_entities(entities, update_before_add=True)
+
+    # Dynamic per-subject sensors (no reload required)
+    created_subjects = seed_created_subjects_from_data(coord, data_now)
+    coord.async_add_listener(build_subjects_listener(coord, created_subjects, async_add_entities))
 
 
 async def async_migrate_entity_entry(
