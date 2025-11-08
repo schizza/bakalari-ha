@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable, Sequence
+import re
 from typing import Any
 
 from homeassistant.components.sensor import SensorEntity
@@ -171,3 +172,8 @@ def build_subjects_listener(
             async_add_entities(to_add)
 
     return _on_coordinator_update
+
+
+def sanitize(sanitize: str) -> str:
+    """Return sanitized slug."""
+    return re.sub(r"[^a-zA-Z0-9_-]", "_", sanitize)

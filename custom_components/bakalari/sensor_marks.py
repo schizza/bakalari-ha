@@ -6,6 +6,7 @@ import re
 from typing import Any
 
 from homeassistant.components.sensor import SensorEntity
+from sensor_helpers import sanitize
 
 from .coordinator import BakalariCoordinator, Child
 from .entity import BakalariEntity
@@ -235,7 +236,7 @@ class BakalariSubjectMarksSensor(BakalariEntity, SensorEntity):
         self._subject_key = str(subject_key).strip()
         display = (label or self._subject_key).strip() or "Předmět"
         self._attr_unique_id = (
-            f"{coordinator.entry.entry_id}:{child.key}:subject:{self._subject_key}"
+            f"{coordinator.entry.entry_id}:{child.key}:subject:{sanitize(self._subject_key)}"
         )
         self._attr_name = f"Známky {display} - {child.short_name}"
 
