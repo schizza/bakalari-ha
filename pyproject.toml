@@ -43,6 +43,7 @@ known-first-party = ["custom_components.bakalari"]
 [tool.pyright]
 pythonVersion = "3.13"
 typeCheckingMode = "basic"
+include = ["./custom_components"]
 exclude = [".venv", "venv", "env", "tests"]
 extraPaths = ["./custom_components"]
 reportMissingImports = true
