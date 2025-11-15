@@ -7,9 +7,8 @@ import asyncio
 from collections.abc import Awaitable, Callable
 from datetime import date, datetime
 import logging
-from sys import api_version
 from time import time
-from typing import Any, Literal, Required, TypedDict, TypeVar
+from typing import Any, Literal, TypeVar
 
 from async_bakalari_api import Bakalari, Komens, Marks, Timetable
 from async_bakalari_api.datastructure import Credentials
@@ -43,15 +42,6 @@ _reauth_state: dict[str, float] = {}
 
 
 T = TypeVar("T")
-
-
-class _ChainStep(TypedDict, total=False):
-    """Step in the chain of API calls."""
-
-    method: Required[str]
-    args: tuple[Any, ...]
-    kwargs: dict[str, Any]
-    follow_result: bool
 
 
 class BakalariClient:
@@ -103,7 +93,6 @@ class BakalariClient:
                     reauth_reason=reauth_reason,
                     default=default,
                     use_lock=use_lock,
-                    mode="callable",
                     callable_fn=_callable_fn,
                 )
 
@@ -111,47 +100,18 @@ class BakalariClient:
 
         return _decorator
 
-    async def _api_call(  # noqa: C901
+    async def _api_call(
         self,
         *,
         label: str,
         reauth_reason: str | None = None,
         default: T,
         use_lock: bool = True,
-        mode: Literal["single", "chain", "callable"] = "single",
-        module: type | None = None,
-        method: str | None = None,
-        args: tuple[Any, ...] = (),
-        kwargs: dict[str, Any] | None = None,
-        chain_module: type | None = None,
-        chain: list[_ChainStep] | None = None,
         callable_fn: Callable[[Bakalari], Awaitable[T]] | None = None,
     ) -> T:
-        """Wrap API call for Bakalari.
+        """Wrap a single callable(lib) API operation with auth, error handling and token persistence."""
 
-        label: str - label for logging and error messages
-        reauth_reason: str | None - reason for reauthentication if auth fails
-        default: T - default return value
-        mode: Literal["single", "chain", "callable"] - mode of API call
-        module: type | None - module for single API call (Komens, Timetable, ...)
-        method: str | None - method for single API call (method of module to call)
-        args: tuple[Any, ...] - arguments for single API call
-        kwargs: dict[str, Any] | None - keyword arguments for single API call
-        chain_module: type | None - module for chain of API calls
-        chain: list[_ChainStep] | None - chain of API calls
-        callable_fn: Callable[[Bakalari], Awaitable[T]] | None - custom callable function
-
-        - mode: single - single API call - module + method (args, kwargs)
-        - mode: chain - chain of API calls - chain_module + chain([...])
-        - mode: callable - custom callable function - callable_fn(lib) -> Awaitable[T]
-        """
-
-        if kwargs is None:
-            kwargs = {}
-
-        async def _execute() -> T:  # noqa: C901 # type: ignore[reportReturnType]
-            """Execute."""
-
+        async def _execute() -> T:
             _lib = await self._is_lib()
             if _lib is None:
                 _LOGGER.error("Lib is not available for %s", label)
@@ -160,38 +120,9 @@ class BakalariClient:
                 return default
 
             try:
-                if mode == "single":
-                    target = _lib if module is None else module(_lib)
-                    func = getattr(target, method)  # type: ignore[arg-type]
-                    result = func(*args, **kwargs)
-                    if asyncio.iscoroutine(result):
-                        result = await result
-                    return result
-
-                if mode == "chain":
-                    if chain is None:
-                        raise ValueError("chain cannot be None in 'chain' mode.")
-                    target: Any = _lib if chain_module is None else chain_module(_lib)
-                    current: Any = target
-                    for step in chain:
-                        step_args = step.get("args", ())
-                        step_kwargs = step.get("kwargs", {})
-                        func = getattr(current, step["method"])
-                        out = func(*step_args, **step_kwargs)
-                        current = await out if asyncio.iscoroutine(out) else out
-                        if step.get("follow_result", False):
-                            pass
-                        else:
-                            current = target
-                    return current
-                if mode == "callable":
-                    if callable_fn is None:
-                        raise ValueError(
-                            "callable_fn cannot be None in 'callable' mode."
-                        )
-                    return await callable_fn(_lib)
-
-                raise ValueError(f"Unsupported mode: {mode}")
+                if callable_fn is None:
+                    raise ValueError("callable_fn must be provided")
+                return await callable_fn(_lib)
             except (
                 Ex.RefreshTokenRedeemd,
                 Ex.RefreshTokenExpired,
@@ -207,65 +138,13 @@ class BakalariClient:
                 await self._reset_tokens_and_client()
                 await self._start_reauth(reauth_reason or "Invalid credentials")
                 return default
-
             except Exception as e:
                 _LOGGER.error("Failed while %s: %s", label, e)
                 _LOGGER.error(RATE_LIMIT_EXCEEDED)
                 return default
-
             finally:
                 await self._save_tokens_if_changed()
 
-        if mode == "chain":
-
-            async def _chain_exec() -> T:
-                _lib = await self._is_lib()
-                if _lib is None:
-                    _LOGGER.error("Lib is not available for %s", label)
-                    await self._reset_tokens_and_client()
-                    await self._start_reauth(reauth_reason or "")
-                    return default
-                try:
-                    target: Any = _lib if chain_module is None else chain_module(_lib)
-                    current: Any = target
-                    last_out: Any = None
-                    for step in chain or []:
-                        step_args = step.get("args", ())
-                        step_kwargs = step.get("kwargs", {})
-                        func = getattr(current, step["method"])
-                        out = func(*step_args, **step_kwargs)
-                        last_out = await out if asyncio.iscoroutine(out) else out
-                        current = (
-                            last_out if step.get("follow_result", False) else target
-                        )
-                    return last_out  # type: ignore[return-value] # noqa: TRY300
-                except (
-                    Ex.RefreshTokenExpired,
-                    Ex.RefreshTokenRedeemd,
-                    Ex.InvalidToken,
-                    Ex.InvalidRefreshToken,
-                ) as err:
-                    _LOGGER.error(
-                        "Auth error while %s for child_id=%s: %s",
-                        label,
-                        self.child_id,
-                        err,
-                    )
-                    await self._reset_tokens_and_client()
-                    await self._start_reauth(reauth_reason or "Invalid credentials")
-                    return default
-
-                except Exception as e:
-                    _LOGGER.error("Failed while %s: %s", label, str(e))
-                    _LOGGER.error(RATE_LIMIT_EXCEEDED)
-                    return default
-                finally:
-                    await self._save_tokens_if_changed()
-
-            if use_lock:
-                async with _fetch_lock:
-                    return await _chain_exec()
-            return await _chain_exec()
         if use_lock:
             async with _fetch_lock:
                 return await _execute()
