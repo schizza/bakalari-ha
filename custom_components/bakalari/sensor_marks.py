@@ -10,8 +10,8 @@ from homeassistant.components.sensor import SensorEntity
 from .coordinator import BakalariCoordinator, Child
 from .entity import BakalariEntity
 from .sensor_helpers import (
-    _aggregate_marks_for_child,
     _get_items_for_child,
+    aggregate_marks_for_child,
     get_child_subjects,
     sanitize,
 )
@@ -132,7 +132,7 @@ class BakalariSubjectMarksSensor(BakalariEntity, SensorEntity):
     def extra_state_attributes(self) -> dict[str, Any]:
         """Return subject details, stats and recent marks."""
         items = _get_items_for_child(self.coordinator, self.child.key)
-        agg = _aggregate_marks_for_child(self.coordinator, self.child.key, items)
+        agg = aggregate_marks_for_child(self.coordinator, self.child.key, items)
         subjects = agg.get("by_subject", []) or []
         info = next(
             (s for s in subjects if s.get("subject_key") == self._subject_key),
@@ -167,7 +167,7 @@ class BakalariIndexHelperSensor(BakalariEntity, SensorEntity):
     @property
     def native_value(self) -> int:
         """Return total subjects for child."""
-        items = _aggregate_marks_for_child(self.coordinator, self.child.key)
+        items = aggregate_marks_for_child(self.coordinator, self.child.key)
         return len(items["by_subject"])
 
     @property

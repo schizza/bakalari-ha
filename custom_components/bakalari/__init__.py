@@ -4,13 +4,13 @@ from __future__ import annotations
 
 import logging
 
+import voluptuous as vol
 from async_bakalari_api import configure_logging
 from homeassistant.components import websocket_api
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers import device_registry as dr
-import voluptuous as vol
 
 from .const import DOMAIN, MANUFACTURER, MODEL, PLATFORMS
 from .coordinator import BakalariCoordinator
@@ -55,13 +55,15 @@ class CustomFormatter(logging.Formatter):
         return formatter.format(record)
 
 
-async def async_setup(hass: HomeAssistant, config) -> bool:
+async def async_setup(hass: HomeAssistant) -> bool:
     """Set up the Bakalari component."""
     hass.data.setdefault(DOMAIN, {})
     return True
 
 
-def _dev_console_handler_for(logger: logging.Logger, formatter: logging.Formatter | None) -> None:
+def _dev_console_handler_for(
+    logger: logging.Logger, formatter: logging.Formatter | None
+) -> None:
     """Přidej konzolový handler jen když žádný není – vhodné pro lokální skripty, NE pro HA."""
     # pokud už nějaké handlery existují (na loggeru NEBO u předků), nedělej nic
     # if logger.hasHandlers():
@@ -81,7 +83,9 @@ def _dev_console_handler_for(logger: logging.Logger, formatter: logging.Formatte
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up of Bakalari component."""
-    _dev_console_handler_for(logging.getLogger("custom_components.bakalari"), CustomFormatter())
+    _dev_console_handler_for(
+        logging.getLogger("custom_components.bakalari"), CustomFormatter()
+    )
 
     coord = BakalariCoordinator(hass, entry)
 

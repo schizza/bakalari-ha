@@ -1,9 +1,4 @@
-line-length = 100
-target-version = "py313"
 
-exclude = [
-    "script/*"
-]
 
 lint.select = [
     "A001", # Variable {name} is shadowing a Python builtin
@@ -133,14 +128,3 @@ lint.ignore = [
     "TRY301"
 ]
 
-[lint.flake8-pytest-style]
-fixture-parentheses = false
-mark-parentheses = false
-
-
-[lint.flake8-tidy-imports.banned-api]
-"async_timeout".msg = "use asyncio.timeout instead"
-
-
-[lint.isort]
-force-sort-within-sections = true

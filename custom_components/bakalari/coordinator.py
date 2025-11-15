@@ -169,6 +169,7 @@ class BakalariCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             summary: dict[str, dict[str, str]] = {}
 
             # removed: unused marks_by_child variable
+
             messages_by_child: dict[str, list[dict[str, Any]]] = {}
             timetable_by_child: dict[str, list[Any]] = {}
 
@@ -252,21 +253,21 @@ class BakalariCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         )
 
         # Messages
-        # messages = await client.async_get_messages()
+        messages = await client.async_get_messages()
 
         # Timetable: current, next and previous week
         today = dt.now().date()
         dates = [today, today + timedelta(weeks=1), today - timedelta(weeks=1)]
         weeks: list[Any] = []
-        # for d in dates:
-        #     w = await client.async_get_timetable_actual(d)
-        #     weeks.append(w)
+        for d in dates:
+            w = await client.async_get_timetable_actual(d)
+            weeks.append(w)
 
         return {
             "snapshot": snapshot,
             "summary": all_marks_summary,
-            #  "messages": messages,
-            # "timetable": weeks,
+            "messages": messages,
+            "timetable": weeks,
             "_range": (date_from, date_to),
         }
 

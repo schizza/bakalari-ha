@@ -29,22 +29,32 @@ exclude = [
 target-version = "py313"
 line-length = 88
 src = ["custom_components", "tests"]
+exclude = ["script/*"]
 
 [tool.ruff.format]
-docsstring-code-format = true
-docsstring-code-inline-length = 88
+docstring-code-format = true
+docstring-code-inline-length = 88
+
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "SIM", "RUF"]
 
 [tool.ruff.lint.isort]
 known-first-party = ["custom_components.bakalari"]
+force-sort-within-sections = true
+
+[tool.ruff.lint.flake8-tidy-imports.banned-api]
+"async_timeout".msg = "use asyncio.timeout instead"
+
+[tool.ruff.lint.flake8-pytest-style]
+fixture-parentheses = false
+mark-parentheses = false
 
 [tool.pyright]
 pythonVersion = "3.13"
 typeCheckingMode = "basic"
 include = ["./custom_components"]
-exclude = [".venv", "venv", "env", "tests"]
+exclude = [".venv", "venv", "env", "tests", "whitelist.py"]
 extraPaths = ["./custom_components"]
 reportMissingImports = true
 reportMissingTypeStubs = false
@@ -53,3 +63,23 @@ reportUnusedVariable = true
 reportUnusedFunction = true
 reportUnusedClass = true
 reportOptionalMemberAccess = false
+
+[tool.vulture]
+
+paths = ["custom_components"]
+
+exclude = ["**/.venv/**", "**/venv/**", "**/tests/**", "**/__pycache__/**"]
+
+min_confidence = 60
+sort_by_size = true
+verbose = false
+
+ignore_names = [
+  "async_setup_entry",
+  "async_unload_entry",
+  "async_remove_entry",
+  "async_migrate_entry",
+  "async_get_options_flow",
+  "hass_", "_attr_name", "friendly_name",
+  "CONFIG_SCHEMA", "PARALLEL_UPDATES"
+]

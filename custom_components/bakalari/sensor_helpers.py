@@ -192,7 +192,7 @@ def sanitize(sanitize: str) -> str:
     return re.sub(r"[^a-zA-Z0-9_-]", "_", sanitize)
 
 
-def _aggregate_marks_for_child(
+def aggregate_marks_for_child(
     coord: BakalariCoordinator, child_key: str, items: list[dict[str, Any]] | None = None
 ) -> dict[str, Any]:
     """Aggregate marks by subject and compute overall statistics for a child."""
