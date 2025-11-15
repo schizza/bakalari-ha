@@ -186,6 +186,7 @@ reportUnusedVariable = true
 reportUnusedFunction = true
 reportUnusedClass = true
 reportOptionalMemberAccess = false
+reportOptionalSubscript=false
 
 [tool.vulture]
 

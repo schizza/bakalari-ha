@@ -85,7 +85,7 @@ class BakalariTimetableCalendar(CalendarEntity):
         now = dt_util.utcnow()
         if self._cache_ts is None or (now - self._cache_ts) > self._cache_ttl:
             pass
-        return self._next_event
+        return self._next_event  # pyright: ignore[]
 
     async def async_update(self) -> None:
         """Periodic update to refresh cached events and next event."""
@@ -94,14 +94,17 @@ class BakalariTimetableCalendar(CalendarEntity):
         self._compute_next_event()
 
     async def async_get_events(
-        self, hass: HomeAssistant, start_date: datetime, end_date: datetime
+        self,
+        hass: HomeAssistant,
+        start_date: datetime,
+        end_date: datetime,
     ) -> list[CalendarEvent]:
         """Return calendar events within a datetime range."""
         await self._ensure_events_loaded()
 
         # Filter cached events by range
-        start = dt_util.as_utc(start_date)
-        end = dt_util.as_utc(end_date)
+        start: datetime = dt_util.as_utc(start_date)
+        end: datetime = dt_util.as_utc(end_date)
 
         in_range: list[CalendarEvent] = []
         for ev in self._events_cache:
@@ -216,7 +219,7 @@ class BakalariTimetableCalendar(CalendarEntity):
                     events.append(
                         CalendarEvent(
                             start=start,
-                            end=end,
+                            end=end or start,
                             summary=summary,
                             description=description,
                             location=location,
@@ -227,7 +230,7 @@ class BakalariTimetableCalendar(CalendarEntity):
         events.sort(key=lambda e: _ensure_utc(e.start))
         return events
 
-    def _lesson_to_event(self, item: dict[str, Any]) -> CalendarEvent:
+    def _lesson_to_event(self, item: dict[str, Any]) -> CalendarEvent | None:
         """Convert a single lesson-like dict into CalendarEvent."""
         # Resolve start/end
         start = _first_parse_datetime(item, ["start", "since", "from", "begin"])
@@ -260,7 +263,7 @@ class BakalariTimetableCalendar(CalendarEntity):
 
         return CalendarEvent(
             start=start,
-            end=end,
+            end=end or start,
             summary=summary,
             description=description,
             location=location,
@@ -341,8 +344,13 @@ def _first_str(item: dict[str, Any], keys: list[str]) -> str | None:
     return None
 
 
-def _ensure_utc(dt: datetime) -> datetime:
-    """Ensure datetime is timezone-aware UTC."""
-    if dt.tzinfo is None:
-        return dt_util.as_utc(dt)
-    return dt.astimezone(dt_util.UTC)
+def _ensure_utc(dt: date | datetime) -> datetime:
+    """Ensure date/datetime is timezone-aware UTC. Dates are treated as local midnight."""
+    if isinstance(dt, datetime):
+        if dt.tzinfo is None:
+            return dt_util.as_utc(dt)
+        return dt.astimezone(dt_util.UTC)
+    # Handle date: interpret as local midnight and convert to UTC
+    local = datetime.combine(dt, time.min)
+    local = local.replace(tzinfo=dt_util.DEFAULT_TIME_ZONE)
+    return dt_util.as_utc(local)

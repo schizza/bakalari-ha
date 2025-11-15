@@ -94,14 +94,16 @@ class FakeBakalariClient:
         subject_id: str | None = None,
         to_dict: bool = True,
         order: str = "desc",
-    ) -> dict[str, Any]:
-        """Return preconfigured snapshot without touching arguments."""
+    ) -> tuple[dict[str, Any], dict[str, str]]:
+        """Return preconfigured snapshot and summary without touching arguments."""
         # Return a shallow copy to reduce mutation side effects in tests
-        return {
+        snapshot = {
             "subjects": dict(self.SNAPSHOT.get("subjects", {})),
             "marks_grouped": dict(self.SNAPSHOT.get("marks_grouped", {})),
             "marks_flat": list(self.SNAPSHOT.get("marks_flat", [])),
         }
+        summary: dict[str, str] = {}
+        return snapshot, summary
 
     async def async_get_messages(self) -> list[FakeMessage]:
         """Return preconfigured messages without touching arguments."""
