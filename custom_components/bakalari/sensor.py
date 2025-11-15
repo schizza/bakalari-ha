@@ -66,7 +66,7 @@ async def async_setup_entry(
             async_setup_entry.__qualname__,
             __name__,
             child,
-            subjects_dict["friendly_names"],
+            subjects_dict.get("friendly_names", {}),
         )
 
         subjects: dict[str, dict[str, Any]] = subjects_dict.get("mapping_names", {})
