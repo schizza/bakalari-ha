@@ -49,7 +49,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         if schools_cache is None:
             _LOGGER.debug(
-                "[class=%s module=%s] Fetching new schools from server ",
+                "[class=%s module=%s] Fetching new schools from server",
                 self.__class__.__name__,
                 __name__,
             )
@@ -66,13 +66,13 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 return False
 
             await schools_storage.async_save(schools_cache.school_list)
-            _LOGGER.debug(
+            _LOGGER.info(
                 "[class=%s module=%s] Schools saved to cache.",
                 self.__class__.__name__,
                 __name__,
             )
         else:
-            _LOGGER.debug(
+            _LOGGER.info(
                 "[class=%s module=%s] Schools loaded from cache.",
                 self.__class__.__name__,
                 __name__,

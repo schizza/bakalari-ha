@@ -32,7 +32,7 @@ async def async_setup_entry(
     children = ensure_children_dict(entry.options.get(CONF_CHILDREN, {}))
     entities: list[BakalariTimetableCalendar] = []
     for child_id, child_info in children.items():
-        _LOGGER.warning(
+        _LOGGER.info(
             "[class=%s module=%s] Setting up Bakalari timetable calendar for child %s with child_info: %s",
             async_setup_entry.__qualname__,
             __name__,
@@ -135,14 +135,6 @@ class BakalariTimetableCalendar(CalendarEntity):
             and self._events_cache
         ):
             return
-
-        _LOGGER.warning(
-            "[class=%s module=%s] unique_id=%s child_id=%s",
-            self.__class__.__name__,
-            __name__,
-            self._attr_unique_id,
-            self._child_id,
-        )
 
         week = await self._client.async_get_timetable_actual(for_date=now.date())
         self._events_cache = self._convert_to_events(week) if week is not None else []

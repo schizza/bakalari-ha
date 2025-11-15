@@ -18,7 +18,6 @@ from .sensor_helpers import (
     seed_created_subjects_from_data,
 )
 from .sensor_marks import (
-    BakalariAllMarksSensor,
     BakalariIndexHelperSensor,
     BakalariLastMarkSensor,
     BakalariNewMarksSensor,
@@ -49,14 +48,14 @@ async def async_setup_entry(
     for child in coord.child_list:
         entities.append(BakalariNewMarksSensor(coord, child))
         entities.append(BakalariLastMarkSensor(coord, child))
-        entities.append(BakalariAllMarksSensor(coord, child))
+        # entities.append(BakalariAllMarksSensor(coord, child))
         entities.append(BakalariMessagesSensor(coord, child))
         entities.append(BakalariTimetableSensor(coord, child))
         entities.append(BakalariIndexHelperSensor(coord, child))
 
     # Per-subject sensors
     #
-    _LOGGER.error(
+    _LOGGER.debug(
         "[class=%s module=%s] Get child subjects: %s",
         async_setup_entry.__qualname__,
         __name__,

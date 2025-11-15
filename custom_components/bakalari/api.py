@@ -65,7 +65,7 @@ class BakalariClient:
         self._save_lock = asyncio.Lock()
         self._last_tokens: tuple[str, str] | None = None
 
-        _LOGGER.debug(
+        _LOGGER.info(
             "[class=%s module=%s] Created BakalariClient instance for child_id=%s",
             self.__class__.__name__,
             __name__,
@@ -214,7 +214,7 @@ class BakalariClient:
                     self.lib = Bakalari(
                         server=server, credentials=cred, session=session
                     )
-                    _LOGGER.debug(
+                    _LOGGER.info(
                         "[class=%s module=%s] Bakalari library instance created for child_id=%s With parameters: %s",
                         self.__class__.__name__,
                         __name__,
@@ -407,7 +407,7 @@ class BakalariClient:
 
         data = _komens.messages.get_messages_by_date(start_of_school_year, today)
 
-        _LOGGER.info(
+        _LOGGER.debug(
             "[class=%s module=%s] Messages for child_id %s: %s",
             self.__class__.__name__,
             __name__,

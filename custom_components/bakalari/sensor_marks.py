@@ -139,9 +139,8 @@ class BakalariSubjectMarksSensor(BakalariEntity, SensorEntity):
             None,
         )
 
-        # Collect recent marks for this subject (limit to 30 to keep attributes manageable)
         sitems = [it for it in items if self._matches_subject(it)]
-        recent = sitems[:30] if sitems else []
+        recent = sitems if sitems else []
 
         return {
             "child_key": self.child.key,
@@ -161,14 +160,14 @@ class BakalariIndexHelperSensor(BakalariEntity, SensorEntity):
     def __init__(self, coordinator: BakalariCoordinator, child: Child) -> None:
         """Initialize the sensor."""
         super().__init__(coordinator, child)
-        self._attr_unique_id = f"{coordinator.entry.entry_id}:{child.key}:marks_helper"
-        self._attr_name = f"Helper - Známky - {child.short_name}"
+        self._attr_unique_id = f"{coordinator.entry.entry_id}:{child.key}:all_marks"
+        self._attr_name = f"Všechny známky - {child.short_name}"
 
     @property
     def native_value(self) -> int:
         """Return total subjects for child."""
         items = aggregate_marks_for_child(self.coordinator, self.child.key)
-        return len(items["by_subject"])
+        return items["overall"]["total"]
 
     @property
     def extra_state_attributes(self):
@@ -177,38 +176,38 @@ class BakalariIndexHelperSensor(BakalariEntity, SensorEntity):
         return get_child_subjects(self.coordinator, self.child)
 
 
-class BakalariAllMarksSensor(BakalariEntity, SensorEntity):
-    """Comprehensive sensor exposing all marks per child with per-subject aggregation."""
+# class BakalariAllMarksSensor(BakalariEntity, SensorEntity):
+#     """Comprehensive sensor exposing all marks per child with per-subject aggregation."""
 
-    _attr_icon = "mdi:book-education"
-    _attr_translation_key = "all_marks"
-    _attr_has_entity_name = True
+#     _attr_icon = "mdi:book-education"
+#     _attr_translation_key = "all_marks"
+#     _attr_has_entity_name = True
 
-    def __init__(self, coordinator: BakalariCoordinator, child: Child) -> None:
-        """Initialize the sensor."""
-        super().__init__(coordinator, child)
-        self._attr_unique_id = f"{coordinator.entry.entry_id}:{child.key}:all_marks"
-        self._attr_name = f"Všechny známky - {child.short_name}"
+#     def __init__(self, coordinator: BakalariCoordinator, child: Child) -> None:
+#         """Initialize the sensor."""
+#         super().__init__(coordinator, child)
+#         self._attr_unique_id = f"{coordinator.entry.entry_id}:{child.key}:all_marks"
+#         self._attr_name = f"Všechny známky - {child.short_name}"
 
-    @property
-    def native_value(self) -> int:
-        """Return total number of marks for the child."""
-        items = _get_items_for_child(self.coordinator, self.child.key)
-        return len(items)
+#     @property
+#     def native_value(self) -> int:
+#         """Return total number of marks for the child."""
+#         items = _get_items_for_child(self.coordinator, self.child.key)
+#         return len(items)
 
-    @property
-    def extra_state_attributes(self) -> dict[str, Any]:
-        """Return aggregated attributes - overall stats and per-subject breakdown."""
-        agg = aggregate_marks_for_child(self.coordinator, self.child.key)
-        overall = agg.get("overall", {})
-        return {
-            "child_key": self.child.key,
-            "total": overall.get("total"),
-            "new_count": overall.get("new_count"),
-            "numeric_count": overall.get("numeric_count"),
-            "non_numeric_count": overall.get("non_numeric_count"),
-            "average": overall.get("average"),
-            "weighted_average": overall.get("weighted_average"),
-            "by_subject": agg.get("by_subject", []),
-            "recent": agg.get("recent", []),
-        }
+#     @property
+#     def extra_state_attributes(self) -> dict[str, Any]:
+#         """Return aggregated attributes - overall stats and per-subject breakdown."""
+#         agg = aggregate_marks_for_child(self.coordinator, self.child.key)
+#         overall = agg.get("overall", {})
+#         return {
+#             "child_key": self.child.key,
+#             "total": overall.get("total"),
+#             "new_count": overall.get("new_count"),
+#             "numeric_count": overall.get("numeric_count"),
+#             "non_numeric_count": overall.get("non_numeric_count"),
+#             "average": overall.get("average"),
+#             "weighted_average": overall.get("weighted_average"),
+#             "by_subject": agg.get("by_subject", []),
+#             "recent": agg.get("recent", []),
+#         }

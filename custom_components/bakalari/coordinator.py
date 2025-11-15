@@ -71,7 +71,7 @@ class BakalariCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 server = (cr.get(CONF_SERVER) or "").strip()
                 user_id = (cr.get(CONF_USER_ID) or str(cid)).strip()
                 if not server or not user_id:
-                    _LOGGER.debug(
+                    _LOGGER.warning(
                         "[class=%s module=%s] Skipping child with missing server/user_id: %s",
                         self.__class__.__name__,
                         __name__,
