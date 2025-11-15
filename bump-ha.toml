@@ -22,7 +22,7 @@ replace = 'pip install homeassistant=={new_version}'
 no-regex = true
 
 [[tool.bumpversion.files]]
-filename = "custom_components/bakalari/const.py"
-search = 'API_VERSION: Final = "{current_version}"'
-replace = 'API_VERSION: Final = "{new_version}"'
+filename = "README.md"
+search = '- Home Assistant `{current_version}+`'
+replace = '- Home Assistant `{new_version}+`'
 no-regex = true

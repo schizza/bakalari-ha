@@ -59,7 +59,9 @@ class BakalariCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self.entry = entry
 
         # Normalize children map from options and build composite-keyed map
-        children_raw: ChildrenMap = ensure_children_dict(entry.options.get(CONF_CHILDREN, {}))
+        children_raw: ChildrenMap = ensure_children_dict(
+            entry.options.get(CONF_CHILDREN, {})
+        )
         self.children: ChildrenMap = {}
         self._option_key_by_child_key: dict[str, str] = {}
         child_list: list[Child] = []
@@ -69,7 +71,12 @@ class BakalariCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 server = (cr.get(CONF_SERVER) or "").strip()
                 user_id = (cr.get(CONF_USER_ID) or str(cid)).strip()
                 if not server or not user_id:
-                    _LOGGER.debug("Skipping child with missing server/user_id: %s", cr)
+                    _LOGGER.warning(
+                        "[class=%s module=%s] Skipping child with missing server/user_id: %s",
+                        self.__class__.__name__,
+                        __name__,
+                        cr,
+                    )
                     continue
 
                 ck = make_child_key(server, user_id)
@@ -92,9 +99,7 @@ class BakalariCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                     tmp_cr[CONF_REFRESH_TOKEN] = rt
                 self.children[ck] = tmp_cr
 
-                display_name = (
-                    f"{cr.get('name', '')} {cr.get('surname', '')} ({cr.get('school', '')})".strip()
-                )
+                display_name = f"{cr.get('name', '')} {cr.get('surname', '')} ({cr.get('school', '')})".strip()
                 child_list.append(
                     Child(
                         key=ck,
@@ -105,7 +110,13 @@ class BakalariCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                     )
                 )
             except Exception:  # noqa: BLE001
-                _LOGGER.exception("Failed to normalize child record for id=%s: %s", cid, cr)
+                _LOGGER.exception(
+                    "[class=%s module=%s] Failed to normalize child record for id=%s: %s",
+                    self.__class__.__name__,
+                    __name__,
+                    cid,
+                    cr,
+                )
 
         self.child_list: list[Child] = child_list
 
@@ -131,10 +142,16 @@ class BakalariCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self._clients: dict[str, BakalariClient] = {}
 
         _LOGGER.debug(
-            "[BakalariCoordinator] Coordinator initialized for entry_id=%s with %s child(ren).",
+            "[class=%s module=%s] Coordinator initialized for entry_id=%s with %s child(ren).",
+            self.__class__.__name__,
+            __name__,
             entry.entry_id,
             len(self.child_list),
         )
+
+    def child_api(self, child_key: str) -> BakalariClient | None:
+        """Get the BakalariClient for a child."""
+        return self._clients.get(child_key, None)
 
     # ---------- Public API for services / WebSocket ----------
 
@@ -156,14 +173,18 @@ class BakalariCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         """Fetch and prepare marks, messages and timetable for all children."""
         try:
             start_year, end_year = school_year_bounds(
-                dt.now().date(), CONF_SCHOOL_YEAR_START_MONTH, CONF_SCHOOL_YEAR_START_DAY
+                dt.now().date(),
+                CONF_SCHOOL_YEAR_START_MONTH,
+                CONF_SCHOOL_YEAR_START_DAY,
             )
 
             subjects_by_child: dict[str, dict[str, dict[str, Any]]] = {}
             marks_by_child_subject: dict[str, dict[str, list[dict[str, Any]]]] = {}
             marks_flat_by_child: dict[str, list[dict[str, Any]]] = {}
+            summary: dict[str, dict[str, str]] = {}
 
             # removed: unused marks_by_child variable
+
             messages_by_child: dict[str, list[dict[str, Any]]] = {}
             timetable_by_child: dict[str, list[Any]] = {}
 
@@ -175,6 +196,7 @@ class BakalariCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 subjects_by_child[ch.key] = snap.get("subjects", {})
                 marks_by_child_subject[ch.key] = snap.get("marks_grouped", {})
                 marks_flat_by_child[ch.key] = snap.get("marks_flat", [])
+                summary[ch.key] = raw.get("summary", {})
 
                 # Messages
                 messages = self._parse_messages(ch, raw)
@@ -212,6 +234,7 @@ class BakalariCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 "messages_by_child": messages_by_child,
                 "timetable_by_child": timetable_by_child,
                 "last_sync_ok": True,
+                "summary": summary,
             }
 
     async def _fetch_child(
@@ -234,10 +257,20 @@ class BakalariCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             else date_from
         )
         dt_to = (
-            datetime.combine(date_to, datetime.min.time()) if isinstance(date_to, date) else date_to
+            datetime.combine(date_to, datetime.min.time())
+            if isinstance(date_to, date)
+            else date_to
         )
-        snapshot = await client.async_get_marks_snapshot(
+
+        snapshot, all_marks_summary = await client.async_get_marks_snapshot(
             date_from=dt_from, date_to=dt_to, to_dict=True, order="desc"
+        )
+        _LOGGER.debug(
+            "[class=%s module=%s] Snapshot: %s \n Summary: %s",
+            self.__class__.__name__,
+            __name__,
+            snapshot,
+            all_marks_summary,
         )
 
         # Messages
@@ -253,19 +286,27 @@ class BakalariCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
         return {
             "snapshot": snapshot,
+            "summary": all_marks_summary,
             "messages": messages,
             "timetable": weeks,
             "_range": (date_from, date_to),
         }
 
-    def _parse_messages(self, child: Child, raw: dict[str, Any]) -> list[dict[str, Any]]:
+    def _parse_messages(
+        self, child: Child, raw: dict[str, Any]
+    ) -> list[dict[str, Any]]:
         """Normalize raw messages into a list of dicts."""
         data = raw.get("messages") or []
         items: list[dict[str, Any]] = []
         try:
             items = [orjson.loads(m.as_json()) for m in data]
         except Exception:  # noqa: BLE001
-            _LOGGER.exception("Failed to parse messages for child_key=%s", child.key)
+            _LOGGER.exception(
+                "[class=%s module=%s] Failed to parse messages for child_key=%s",
+                self.__class__.__name__,
+                __name__,
+                child.key,
+            )
         return items
 
     def option_key_for_child(self, child_key: str) -> str | None:

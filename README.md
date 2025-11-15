@@ -10,6 +10,10 @@ Custom komponenta pro Home Assistant, založená na [async-bakalari-api3](https:
 
 ## 🚨 Breaking changes
 
+- Verze 1.3.0 zavádí pro každý předmět jednotlivý senzor (dynamické generování podle dat z Bakalářů).
+  - původní senzor `all_marks` již drží jen metadata pro Lovelace kartu
+  - obsah metadat a co lze z tohoto senzoru získat viz níže.
+
 Od verze 1.1.0 jsou již senzory migrovány pod `DeviceRegistry`
  - nově je každé dítě jako separátní `DeviceRegistry` (zařízení v HUBu) s jednotlivými senzory
  - `uid` senzoru se nezměnilo, ale změnil se název senzoru - nyní dědí jméno z `DeviceRegistry`
@@ -33,17 +37,49 @@ Od verze 1.1.0 jsou již senzory migrovány pod `DeviceRegistry`
 
 - Zprávy
   - tento senzor stahuje zprávy za poslední měsíc
+  - TODO: všechny zprávy za školní rok - problém je v limitu pro `recorder`\
+  v plánu je lokální cache, aby se "nezatěžoval" senzor
 
 - Rozvrh
   - tento senzor stahuje rozvrh na aktuální týden +- 7 dní
 
 - Známky
-  - ze školního serveru se již stahují všechny známky
-  - známky jsou agregované per-předmět
+  - každý předmět má nyní svůj vlastní senzro
+  - původní senzor `all_marks` udržuje pouze metadata pro Lovelace kartu
+  - ze školního serveru se již stahují všechny známky, zrušen limit 30 posledních
+  - známky jsou agregované per-předmět a per-child
   - zobrazení poslední přijaté známky nadále funguje bez rozdílu
   - přidána možnost `fire_event` pro vyvolání události při nové známce, bude sloužit k oznámení např. v mobilní aplikaci
   - přidána možnost Websocketu
   - další funkcionality v následujících verzích
+
+Příklad metadat v senzoru `Všechny známky`
+
+```yaml
+friendly_names:
+  - Český jazyk a literatura
+  - Matematika
+  ...
+mapping_names:
+  "2":
+    name: Český jazyk a literatura
+    abbr: ČJ
+  "10":
+    name: Matematika
+    abbr: M
+sensor_map:
+  "2": >-
+    sensor.bakalari_...._znamky_cj_jméno_dítěte
+  "10": >-
+    sensor.bakalari_...._znamky_m_jméno_dítěte
+summary:
+  wavg: "1.22"
+  avg: "1.16"
+  subjects: "8"
+  total_marks: "105"
+  total_point_marks: "0"
+  total_non_point_marks: "105"
+```
 
 ## Karty pro Lovelace jsou nyní instalovány přes HACS ve vlastím [repozitáři](https://github.com/schizza/bakalari-ha-frontend).
 
@@ -60,8 +96,8 @@ Od verze 1.1.0 jsou již senzory migrovány pod `DeviceRegistry`
 
 ## Požadavky
 
-- Home Assistant `2025.9.1+`
-- PyPI: `async-bakalari-api==0.6.0`
+- Home Assistant `2025.9.4+`
+- PyPI: `async-bakalari-api==0.7.0`
 
 ## Licence
 
