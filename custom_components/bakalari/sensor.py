@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 import re
+from typing import Any
 
 from homeassistant import config_entries
 from homeassistant.core import HomeAssistant
@@ -13,10 +14,18 @@ from .const import CONF_CHILDREN, CONF_SERVER, CONF_USER_ID, DOMAIN
 from .coordinator import BakalariCoordinator
 from .sensor_helpers import (
     build_subjects_listener,
-    create_initial_entities,
-    create_subject_entities_for_child,
+    get_child_subjects,
     seed_created_subjects_from_data,
 )
+from .sensor_marks import (
+    BakalariAllMarksSensor,
+    BakalariIndexHelperSensor,
+    BakalariLastMarkSensor,
+    BakalariNewMarksSensor,
+    BakalariSubjectMarksSensor,
+)
+from .sensor_messages import BakalariMessagesSensor
+from .sensor_timetable import BakalariTimetableSensor
 from .utils import ensure_children_dict, make_child_key
 
 _LOGGER = logging.getLogger(__name__)
@@ -34,13 +43,29 @@ async def async_setup_entry(
     entities = []
     data_now = coord.data or {}
 
-    # Base sensors and initial per-subject sensors
+    # Base sensors
     for child in coord.child_list:
-        entities.extend(create_initial_entities(coord, child))
-        try:
-            entities.extend(create_subject_entities_for_child(coord, child, data_now))
-        except Exception:
-            _LOGGER.exception("Failed to create per-subject sensors for child_key=%s", child.key)
+        entities.append(BakalariNewMarksSensor(coord, child))
+        entities.append(BakalariLastMarkSensor(coord, child))
+        entities.append(BakalariAllMarksSensor(coord, child))
+        entities.append(BakalariMessagesSensor(coord, child))
+        entities.append(BakalariTimetableSensor(coord, child))
+        entities.append(BakalariIndexHelperSensor(coord, child))
+
+    # Per-subject sensors
+    #
+    _LOGGER.error("Get child subjects: %s", get_child_subjects(coord, child))
+
+    subjects_dict: dict[str, Any] = get_child_subjects(coord, child)
+    subjects: dict[str, dict[str, Any]] = subjects_dict.get("mapping_names", {})
+    subj_sensors: list[dict[str, str]] = [
+        {"id": s_id, "abbr": s_data["abbr"]} for s_id, s_data in subjects.items()
+    ]  # list of {subject_id, subject_abbr}, ...
+
+    entities.extend(
+        BakalariSubjectMarksSensor(coord, child, subject_sensor["id"], subject_sensor["abbr"])
+        for subject_sensor in subj_sensors
+    )
 
     async_add_entities(entities, update_before_add=True)
 

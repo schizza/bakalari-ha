@@ -136,6 +136,10 @@ class BakalariCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             len(self.child_list),
         )
 
+    def child_api(self, child_key: str) -> BakalariClient | None:
+        """Get the BakalariClient for a child."""
+        return self._clients.get(child_key, None)
+
     # ---------- Public API for services / WebSocket ----------
 
     async def async_mark_seen(self, mark_id: str, child_key: str | None) -> None:
@@ -162,6 +166,7 @@ class BakalariCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             subjects_by_child: dict[str, dict[str, dict[str, Any]]] = {}
             marks_by_child_subject: dict[str, dict[str, list[dict[str, Any]]]] = {}
             marks_flat_by_child: dict[str, list[dict[str, Any]]] = {}
+            summary: dict[str, dict[str, str]] = {}
 
             # removed: unused marks_by_child variable
             messages_by_child: dict[str, list[dict[str, Any]]] = {}
@@ -175,6 +180,7 @@ class BakalariCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 subjects_by_child[ch.key] = snap.get("subjects", {})
                 marks_by_child_subject[ch.key] = snap.get("marks_grouped", {})
                 marks_flat_by_child[ch.key] = snap.get("marks_flat", [])
+                summary[ch.key] = raw.get("summary", {})
 
                 # Messages
                 messages = self._parse_messages(ch, raw)
@@ -212,6 +218,7 @@ class BakalariCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 "messages_by_child": messages_by_child,
                 "timetable_by_child": timetable_by_child,
                 "last_sync_ok": True,
+                "summary": summary,
             }
 
     async def _fetch_child(
@@ -236,25 +243,30 @@ class BakalariCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         dt_to = (
             datetime.combine(date_to, datetime.min.time()) if isinstance(date_to, date) else date_to
         )
-        snapshot = await client.async_get_marks_snapshot(
+
+        snapshot, all_marks_summary = await client.get_marks_snapshot(
             date_from=dt_from, date_to=dt_to, to_dict=True, order="desc"
+        )
+        _LOGGER.debug(
+            "[Coordinator._fetch_child]: Snapshot: %s \n Summary: %s", snapshot, all_marks_summary
         )
 
         # Messages
-        messages = await client.async_get_messages()
+        # messages = await client.async_get_messages()
 
         # Timetable: current, next and previous week
         today = dt.now().date()
         dates = [today, today + timedelta(weeks=1), today - timedelta(weeks=1)]
         weeks: list[Any] = []
-        for d in dates:
-            w = await client.async_get_timetable_actual(d)
-            weeks.append(w)
+        # for d in dates:
+        #     w = await client.async_get_timetable_actual(d)
+        #     weeks.append(w)
 
         return {
             "snapshot": snapshot,
-            "messages": messages,
-            "timetable": weeks,
+            "summary": all_marks_summary,
+            #  "messages": messages,
+            # "timetable": weeks,
             "_range": (date_from, date_to),
         }
 

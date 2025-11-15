@@ -532,6 +532,66 @@ class BakalariClient:
             ],
         )
 
+    @api_call(label="get_marks", default=([], {}), reauth_reason="get_marks", use_lock=True)
+    async def get_marks(self, lib) -> tuple[list[SubjectsBase], dict[str, str]]:
+        """Fetch marks from server."""
+
+        _marks = Marks(lib)
+        await _marks.fetch_marks()
+        _all_marks: list[SubjectsBase] = await _marks.get_marks_all()
+        _all_marks_summary: dict[str, str] = await _marks.get_all_marks_summary()
+
+        return (_all_marks, _all_marks_summary)
+
+    @api_call(
+        label="get_marks_snapshot",
+        default=({"subjects": {}, "marks_grouped": {}, "marks_flat": []}, {}),
+        reauth_reason="get_marks_snapshoot",
+        use_lock=True,
+    )
+    async def get_marks_snapshot(
+        self,
+        lib,
+        *,
+        date_from: datetime | date | None = None,
+        date_to: datetime | date | None = None,
+        subject_id: str | None = None,
+        to_dict: bool = True,
+        order: Literal["asc", "desc"] = "desc",
+    ) -> tuple[dict[str, Any], dict[str, str]]:
+        """Get snapshot of marks (subjects, grouped, flat) using new API."""
+
+        # Normalize date inputs to datetime (library expects datetime)
+        df = None
+        dt_to = None
+        if date_from is not None:
+            if isinstance(date_from, datetime):
+                df = date_from
+            else:
+                df = datetime.combine(date_from, datetime.min.time())
+        if date_to is not None:
+            if isinstance(date_to, datetime):
+                dt_to = date_to
+            else:
+                dt_to = datetime.combine(date_to, datetime.min.time())
+
+        _LOGGER.debug(
+            "[BakalariClient.get_marks_snapshot]: Fetching marks snapshot (from=%s to=%s subject_id=%s order=%s)",
+            df,
+            dt_to,
+            subject_id,
+            order,
+        )
+
+        _marks = Marks(lib)
+        await _marks.fetch_marks()
+        _snapshot = await _marks.get_snapshot(
+            date_from=df, date_to=dt_to, subject_id=subject_id, order=order, to_dict=to_dict
+        )
+        _all_marks_summary = await _marks.get_all_marks_summary()
+
+        return (dict(_snapshot), _all_marks_summary)
+
     async def async_get_marks_snapshot(
         self,
         *,

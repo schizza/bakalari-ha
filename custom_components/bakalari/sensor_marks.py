@@ -2,22 +2,21 @@
 
 from __future__ import annotations
 
-import re
+import logging
 from typing import Any
 
 from homeassistant.components.sensor import SensorEntity
-from sensor_helpers import sanitize
 
 from .coordinator import BakalariCoordinator, Child
 from .entity import BakalariEntity
+from .sensor_helpers import (
+    _aggregate_marks_for_child,
+    _get_items_for_child,
+    get_child_subjects,
+    sanitize,
+)
 
-
-def _get_items_for_child(coord: BakalariCoordinator, child_key: str) -> list[dict[str, Any]]:
-    """Get marks list for the child from coordinator data."""
-    data = coord.data or {}
-    by_child = data.get("marks_by_child") or {}
-    items: list[dict[str, Any]] = by_child.get(child_key, []) or []
-    return items
+_LOGGER = logging.getLogger(__name__)
 
 
 class BakalariNewMarksSensor(BakalariEntity, SensorEntity):
@@ -88,135 +87,6 @@ class BakalariLastMarkSensor(BakalariEntity, SensorEntity):
         }
 
 
-def _parse_numeric_mark(item: dict[str, Any]) -> tuple[float | None, float]:
-    """Extract numeric value and optional weight from a mark item. Returns (value, weight)."""
-    # Direct numeric fields (prefer explicit numeric values if present)
-    for key in ("value", "numeric_value", "mark_value"):
-        v = item.get(key)
-        if isinstance(v, int | float):
-            w_raw = item.get("weight") or item.get("coef") or item.get("coefficient")
-            try:
-                w = float(w_raw) if w_raw is not None and str(w_raw).strip() != "" else 1.0
-            except Exception:  # noqa: BLE001
-                w = 1.0
-            return float(v), w
-
-    # Parse from text fields (e.g., "1-", "2+", "15/20", "18 b.") - take the first number found
-    txt = str(item.get("mark_text") or item.get("points_text") or "").strip()
-    m = re.search(r"(\d+[.,]?\d*)", txt)
-    if not m:
-        return None, 0.0
-    try:
-        val = float(m.group(1).replace(",", "."))
-    except Exception:  # noqa: BLE001
-        return None, 0.0
-
-    w_raw = item.get("weight") or item.get("coef") or item.get("coefficient")
-    try:
-        w = float(w_raw) if w_raw is not None and str(w_raw).strip() != "" else 1.0
-    except Exception:  # noqa: BLE001
-        w = 1.0
-    return val, w
-
-
-def _aggregate_marks_for_child(
-    coord: BakalariCoordinator, child_key: str, items: list[dict[str, Any]] | None = None
-) -> dict[str, Any]:
-    """Aggregate marks by subject and compute overall statistics for a child."""
-    if not items:
-        items = _get_items_for_child(coord, child_key)
-
-    by_subject: dict[str, dict[str, Any]] = {}
-    total = len(items)
-    new_count = 0
-    overall_numeric = 0
-    overall_non_numeric = 0
-    overall_sum = 0.0
-    overall_wsum = 0.0
-    overall_w = 0.0
-
-    for it in items:
-        subj_id = str(it.get("subject_id") or it.get("subject") or "").strip() or None
-        subj_abbr = str(it.get("subject_abbr") or "").strip()
-        subj_name = str(it.get("subject_name") or "").strip()
-        subj_key = subj_id or subj_abbr or subj_name or "unknown"
-
-        if subj_key not in by_subject:
-            by_subject[subj_key] = {
-                "subject_id": subj_id,
-                "subject_key": subj_key,
-                "subject_abbr": subj_abbr or None,
-                "subject_name": subj_name or None,
-                "count": 0,
-                "new_count": 0,
-                "numeric_count": 0,
-                "non_numeric_count": 0,
-                "sum": 0.0,
-                "wsum": 0.0,
-                "weight": 0.0,
-                "last_text": None,
-                "last_date": None,
-            }
-
-        agg = by_subject[subj_key]
-        agg["count"] += 1
-        if it.get("is_new"):
-            agg["new_count"] += 1
-            new_count += 1
-
-        val, w = _parse_numeric_mark(it)
-        if val is None:
-            agg["non_numeric_count"] += 1
-            overall_non_numeric += 1
-        else:
-            agg["numeric_count"] += 1
-            agg["sum"] += val
-            agg["wsum"] += val * (w or 1.0)
-            agg["weight"] += w or 1.0
-            overall_numeric += 1
-            overall_sum += val
-            overall_wsum += val * (w or 1.0)
-            overall_w += w or 1.0
-
-        # Keep the latest mark info per subject (items are expected in descending time order)
-        if agg["last_text"] is None:
-            last_text = (it.get("mark_text") or it.get("points_text") or "").strip() or None
-            last_date = it.get("date") or it.get("created") or it.get("inserted") or None
-            agg["last_text"] = last_text
-            agg["last_date"] = last_date
-
-    # Finalize averages
-    subjects: list[dict[str, Any]] = []
-    for s in by_subject.values():
-        n = s["numeric_count"]
-        w = s["weight"]
-        s["avg"] = round(s["sum"] / n, 3) if n > 0 else None
-        s["wavg"] = round(s["wsum"] / w, 3) if w and w > 0 else s["avg"]
-        # Remove intermediate sums to keep attributes small but useful
-        del s["sum"]
-        del s["wsum"]
-        del s["weight"]
-        subjects.append(s)
-
-    # Sort subjects naturally: first by abbr, then by name
-    subjects.sort(key=lambda s: (s.get("subject_abbr") or "", s.get("subject_name") or ""))
-
-    overall = {
-        "total": total,
-        "new_count": new_count,
-        "numeric_count": overall_numeric,
-        "non_numeric_count": overall_non_numeric,
-        "average": round(overall_sum / overall_numeric, 3) if overall_numeric > 0 else None,
-        "weighted_average": round(overall_wsum / overall_w, 3) if overall_w > 0 else None,
-    }
-
-    return {
-        "overall": overall,
-        "by_subject": subjects,
-        "recent": items[:20] if items else [],
-    }
-
-
 class BakalariSubjectMarksSensor(BakalariEntity, SensorEntity):
     """Per-subject sensor exposing mark count and basic stats for a single subject."""
 
@@ -228,17 +98,20 @@ class BakalariSubjectMarksSensor(BakalariEntity, SensorEntity):
         self,
         coordinator: BakalariCoordinator,
         child: Child,
-        subject_key: str,
+        subject_id: str,
+        subject_abbr: str,
         label: str | None = None,
     ) -> None:
         """Initialize the sensor for a specific subject."""
         super().__init__(coordinator, child)
-        self._subject_key = str(subject_key).strip()
-        display = (label or self._subject_key).strip() or "Předmět"
+        self._subject_key = subject_id
+        self._subject_abbr: str = subject_abbr
+        display = (label or self._subject_abbr).strip()
         self._attr_unique_id = (
             f"{coordinator.entry.entry_id}:{child.key}:subject:{sanitize(self._subject_key)}"
         )
         self._attr_name = f"Známky {display} - {child.short_name}"
+        self._friendly_name = f" Známky {display} - {child.short_name}"
 
     def _matches_subject(self, item: dict[str, Any]) -> bool:
         """Return True if the given mark item belongs to this sensor's subject."""
@@ -276,6 +149,32 @@ class BakalariSubjectMarksSensor(BakalariEntity, SensorEntity):
             "subject": info,
             "recent": recent,
         }
+
+
+class BakalariIndexHelperSensor(BakalariEntity, SensorEntity):
+    """Create helper sensor for mapping subjects to their sensors."""
+
+    _attr_icon = "mdi:book-education"
+    _attr_translation_key = "index_helper"
+    _attr_has_entity_name = True
+
+    def __init__(self, coordinator: BakalariCoordinator, child: Child) -> None:
+        """Initialize the sensor."""
+        super().__init__(coordinator, child)
+        self._attr_unique_id = f"{coordinator.entry.entry_id}:{child.key}:marks_helper"
+        self._attr_name = f"Helper - Známky - {child.short_name}"
+
+    @property
+    def native_value(self) -> int:
+        """Return total subjects for child."""
+        items = _aggregate_marks_for_child(self.coordinator, self.child.key)
+        return len(items["by_subject"])
+
+    @property
+    def extra_state_attributes(self):
+        """Return extra state attributes."""
+
+        return get_child_subjects(self.coordinator, self.child)
 
 
 class BakalariAllMarksSensor(BakalariEntity, SensorEntity):
