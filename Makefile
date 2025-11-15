@@ -71,7 +71,8 @@ install: venv
 		ruff pre-commit \
 		pytest pytest-asyncio pytest-homeassistant-custom-component \
 		async-bakalari-api==$(BAKALARI_VERSION) \
-		bump-my-version PyTurboJPEG
+		bump-my-version PyTurboJPEG \
+		basedpyright
 	$(MAKE) hassfest-setup
 
 update:
@@ -88,6 +89,8 @@ lint:
 	@$(RUFF) check .
 	@echo -n "Ruff format: "
 	@$(RUFF) format --check .
+	@set -o pipefail; \
+		basedpyright --outputjson | python script/pretty_basedpyright.py
 
 fmt:
 	@$(RUFF) format .
