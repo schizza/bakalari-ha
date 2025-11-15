@@ -29,7 +29,8 @@ exclude = [
 target-version = "py313"
 line-length = 88
 src = ["custom_components", "tests"]
-exclude = ["script/*"]
+exclude = [".venv", "venv", "env", "build", "dist", ".git", ".mypy_cache", ".pytest_cache", "script/*"]
+force-exclude = true
 
 [tool.ruff.format]
 docstring-code-format = true
@@ -176,9 +177,9 @@ mark-parentheses = false
 [tool.pyright]
 pythonVersion = "3.13"
 typeCheckingMode = "basic"
-include = ["./custom_components"]
-exclude = [".venv", "venv", "env", "tests", "script"]
-extraPaths = ["./custom_components"]
+include = ["custom_components", "tests"]
+exclude = [".venv", "venv", "env", "script"]
+extraPaths = ["custom_components"]
 reportMissingImports = true
 reportMissingTypeStubs = false
 reportUnusedImport = true

@@ -15,7 +15,7 @@ from custom_components.bakalari.api import BakalariClient
 async def test_api_call_success(monkeypatch: pytest.MonkeyPatch):
     """Test successful API call."""
     # Arrange
-    client = BakalariClient(hass=object(), entry=object(), child_id="c1")
+    client = BakalariClient(hass=object(), entry=object(), child_id="c1")  # pyright: ignore[]
 
     # Stub library creation and token save
     monkeypatch.setattr(client, "_is_lib", AsyncMock(return_value=SimpleNamespace()))
@@ -41,7 +41,7 @@ async def test_api_call_success(monkeypatch: pytest.MonkeyPatch):
 async def test_api_call_lib_missing_triggers_reauth(monkeypatch: pytest.MonkeyPatch):
     """Test API call when library is missing."""
     # Arrange
-    client = BakalariClient(hass=object(), entry=object(), child_id="c1")
+    client = BakalariClient(hass=object(), entry=object(), child_id="c1")  # pyright: ignore[]
 
     monkeypatch.setattr(client, "_is_lib", AsyncMock(return_value=None))
     reset_mock = AsyncMock()
@@ -90,7 +90,7 @@ async def test_api_call_auth_error_triggers_reauth(monkeypatch: pytest.MonkeyPat
 
     monkeypatch.setattr(api_mod, "Ex", DummyEx, raising=True)
 
-    client = BakalariClient(hass=object(), entry=object(), child_id="c1")
+    client = BakalariClient(hass=object(), entry=object(), child_id="c1")  # pyright: ignore[]
     monkeypatch.setattr(client, "_is_lib", AsyncMock(return_value=SimpleNamespace()))
     reset_mock = AsyncMock()
     reauth_mock = AsyncMock()
@@ -122,7 +122,7 @@ async def test_api_call_auth_error_triggers_reauth(monkeypatch: pytest.MonkeyPat
 async def test_api_call_generic_error_returns_default(monkeypatch: pytest.MonkeyPatch):
     """Test API call when generic error occurs."""
     # Arrange
-    client = BakalariClient(hass=object(), entry=object(), child_id="c1")
+    client = BakalariClient(hass=object(), entry=object(), child_id="c1")  # pyright: ignore[]
     monkeypatch.setattr(client, "_is_lib", AsyncMock(return_value=SimpleNamespace()))
     save_mock = AsyncMock()
     monkeypatch.setattr(client, "_save_tokens_if_changed", save_mock)
@@ -148,7 +148,7 @@ async def test_api_call_generic_error_returns_default(monkeypatch: pytest.Monkey
 async def test_api_call_lock_serialization(monkeypatch: pytest.MonkeyPatch):
     """Test API call when lock serialization occurs."""
     # Arrange: ensure concurrent calls are serialized by the internal fetch lock
-    client = BakalariClient(hass=object(), entry=object(), child_id="c1")
+    client = BakalariClient(hass=object(), entry=object(), child_id="c1")  # pyright: ignore[]
     monkeypatch.setattr(client, "_is_lib", AsyncMock(return_value=SimpleNamespace()))
     monkeypatch.setattr(client, "_save_tokens_if_changed", AsyncMock(return_value=None))
 
