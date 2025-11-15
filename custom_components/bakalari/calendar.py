@@ -23,15 +23,19 @@ SCAN_INTERVAL = timedelta(minutes=120)
 
 
 async def async_setup_entry(
-    hass: HomeAssistant, entry: config_entries.ConfigEntry, async_add_entities: AddEntitiesCallback
+    hass: HomeAssistant,
+    entry: config_entries.ConfigEntry,
+    async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up Bakalari calendar entities from a config entry."""
 
     children = ensure_children_dict(entry.options.get(CONF_CHILDREN, {}))
     entities: list[BakalariTimetableCalendar] = []
     for child_id, child_info in children.items():
-        _LOGGER.warning(
-            "Setting up Bakalari timetable calendar for child %s with child_info: %s",
+        _LOGGER.info(
+            "[class=%s module=%s] Setting up Bakalari timetable calendar for child %s with child_info: %s",
+            async_setup_entry.__qualname__,
+            __name__,
             child_id,
             redact_child_info(child_info),
         )
@@ -51,7 +55,11 @@ class BakalariTimetableCalendar(CalendarEntity):
     """Calendar entity representing child's school timetable."""
 
     def __init__(
-        self, hass: HomeAssistant, entry: config_entries.ConfigEntry, child_id: str, child_name: str
+        self,
+        hass: HomeAssistant,
+        entry: config_entries.ConfigEntry,
+        child_id: str,
+        child_name: str,
     ) -> None:
         """Initialize the calendar entity."""
         self._hass = hass
@@ -79,7 +87,7 @@ class BakalariTimetableCalendar(CalendarEntity):
         now = dt_util.utcnow()
         if self._cache_ts is None or (now - self._cache_ts) > self._cache_ttl:
             pass
-        return self._next_event
+        return self._next_event  # pyright: ignore[]
 
     async def async_update(self) -> None:
         """Periodic update to refresh cached events and next event."""
@@ -88,14 +96,17 @@ class BakalariTimetableCalendar(CalendarEntity):
         self._compute_next_event()
 
     async def async_get_events(
-        self, hass: HomeAssistant, start_date: datetime, end_date: datetime
+        self,
+        hass: HomeAssistant,
+        start_date: datetime,
+        end_date: datetime,
     ) -> list[CalendarEvent]:
         """Return calendar events within a datetime range."""
         await self._ensure_events_loaded()
 
         # Filter cached events by range
-        start = dt_util.as_utc(start_date)
-        end = dt_util.as_utc(end_date)
+        start: datetime = dt_util.as_utc(start_date)
+        end: datetime = dt_util.as_utc(end_date)
 
         in_range: list[CalendarEvent] = []
         for ev in self._events_cache:
@@ -118,14 +129,12 @@ class BakalariTimetableCalendar(CalendarEntity):
     async def _ensure_events_loaded(self) -> None:
         """Load timetable and build the events cache if expired."""
         now = dt_util.utcnow()
-        if self._cache_ts and (now - self._cache_ts) <= self._cache_ttl and self._events_cache:
+        if (
+            self._cache_ts
+            and (now - self._cache_ts) <= self._cache_ttl
+            and self._events_cache
+        ):
             return
-
-        _LOGGER.warning(
-            "[calendar.ensure_events_loaded] unique_id=%s child_id=%s",
-            self._attr_unique_id,
-            self._child_id,
-        )
 
         week = await self._client.async_get_timetable_actual(for_date=now.date())
         self._events_cache = self._convert_to_events(week) if week is not None else []
@@ -156,7 +165,9 @@ class BakalariTimetableCalendar(CalendarEntity):
                 date_part = getattr(day, "date", None)
                 if date_part is None:
                     continue
-                day_date = date_part.date() if isinstance(date_part, datetime) else date_part
+                day_date = (
+                    date_part.date() if isinstance(date_part, datetime) else date_part
+                )
                 atoms = getattr(day, "atoms", []) or []
                 for atom in atoms:
                     hour_id = getattr(atom, "hour_id", None)
@@ -165,7 +176,9 @@ class BakalariTimetableCalendar(CalendarEntity):
                     hour = hours.get(hour_id)
                     if hour is None:
                         continue
-                    start = _combine_local_utc(day_date, getattr(hour, "begin_time", ""))
+                    start = _combine_local_utc(
+                        day_date, getattr(hour, "begin_time", "")
+                    )
                     end = _combine_local_utc(day_date, getattr(hour, "end_time", ""))
                     if start is None:
                         continue
@@ -195,23 +208,30 @@ class BakalariTimetableCalendar(CalendarEntity):
                         if ch_time:
                             ch_label += f" ({ch_time})"
                         description_parts.append(ch_label)
-                    description = " | ".join([p for p in description_parts if p]) or None
+                    description = (
+                        " | ".join([p for p in description_parts if p]) or None
+                    )
                     location = _label_room(room)
                     events.append(
                         CalendarEvent(
                             start=start,
-                            end=end,
+                            end=end or start,
                             summary=summary,
                             description=description,
                             location=location,
                         )
                     )
         except Exception as e:
-            _LOGGER.error("Failed to build events from TimetableWeek: %s", e)
+            _LOGGER.error(
+                "[class=%s module=%s] Failed to build events from TimetableWeek: %s",
+                self.__class__.__name__,
+                __name__,
+                e,
+            )
         events.sort(key=lambda e: _ensure_utc(e.start))
         return events
 
-    def _lesson_to_event(self, item: dict[str, Any]) -> CalendarEvent:
+    def _lesson_to_event(self, item: dict[str, Any]) -> CalendarEvent | None:
         """Convert a single lesson-like dict into CalendarEvent."""
         # Resolve start/end
         start = _first_parse_datetime(item, ["start", "since", "from", "begin"])
@@ -223,7 +243,8 @@ class BakalariTimetableCalendar(CalendarEntity):
 
         # Try to build a summary/description/location from common keys
         summary = (
-            _first_str(item, ["subject", "caption", "name", "title", "subject_name"]) or "Lekce"
+            _first_str(item, ["subject", "caption", "name", "title", "subject_name"])
+            or "Lekce"
         )
         teacher = _first_str(item, ["teacher", "teacher_name", "tutor", "lector"])
         room = _first_str(item, ["room", "classroom", "room_name", "classroom_name"])
@@ -243,7 +264,7 @@ class BakalariTimetableCalendar(CalendarEntity):
 
         return CalendarEvent(
             start=start,
-            end=end,
+            end=end or start,
             summary=summary,
             description=description,
             location=location,
@@ -287,7 +308,8 @@ def _label_room(room: Any) -> str | None:
 def _label_groups(groups: Any) -> str | None:
     try:
         items = [
-            getattr(g, "abbrev", None) or getattr(g, "name", None) or "" for g in (groups or [])
+            getattr(g, "abbrev", None) or getattr(g, "name", None) or ""
+            for g in (groups or [])
         ]
         items = [i for i in items if i]
         return ",".join(items) if items else None
@@ -323,8 +345,13 @@ def _first_str(item: dict[str, Any], keys: list[str]) -> str | None:
     return None
 
 
-def _ensure_utc(dt: datetime) -> datetime:
-    """Ensure datetime is timezone-aware UTC."""
-    if dt.tzinfo is None:
-        return dt_util.as_utc(dt)
-    return dt.astimezone(dt_util.UTC)
+def _ensure_utc(dt: date | datetime) -> datetime:
+    """Ensure date/datetime is timezone-aware UTC. Dates are treated as local midnight."""
+    if isinstance(dt, datetime):
+        if dt.tzinfo is None:
+            return dt_util.as_utc(dt)
+        return dt.astimezone(dt_util.UTC)
+    # Handle date: interpret as local midnight and convert to UTC
+    local = datetime.combine(dt, time.min)
+    local = local.replace(tzinfo=dt_util.DEFAULT_TIME_ZONE)
+    return dt_util.as_utc(local)

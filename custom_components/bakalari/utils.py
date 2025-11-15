@@ -103,7 +103,10 @@ def ensure_child_record(obj: Any, child_id: str) -> ChildRecord:
 
     # Case 2: raw child dict
     elif isinstance(obj, dict) and (
-        CONF_USER_ID in obj or CONF_SERVER in obj or CONF_NAME in obj or "credentials" in obj
+        CONF_USER_ID in obj
+        or CONF_SERVER in obj
+        or CONF_NAME in obj
+        or "credentials" in obj
     ):
         raw = obj
 
@@ -164,7 +167,9 @@ def redact_child_info(child_info: ChildRecord) -> ChildRecord:
     if CONF_ACCESS_TOKEN in redacted:
         redacted[CONF_ACCESS_TOKEN] = "***" if redacted[CONF_ACCESS_TOKEN] else "EMPTY!"
     if CONF_REFRESH_TOKEN in redacted:
-        redacted[CONF_REFRESH_TOKEN] = "***" if redacted[CONF_REFRESH_TOKEN] else "EMPTY!"
+        redacted[CONF_REFRESH_TOKEN] = (
+            "***" if redacted[CONF_REFRESH_TOKEN] else "EMPTY!"
+        )
     return redacted
 
 

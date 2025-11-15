@@ -64,7 +64,11 @@ class BakalariOptionsFlow(config_entries.OptionsFlow):
 
         await self.create_schools_instance()
 
-        actions = {"add": "Přidat nové dítě", "edit": "Upravit dítě", "delete": "Smazat dítě"}
+        actions = {
+            "add": "Přidat nové dítě",
+            "edit": "Upravit dítě",
+            "delete": "Smazat dítě",
+        }
 
         data_schema = vol.Schema({vol.Required("action"): vol.In(actions)})
         if user_input is not None:
@@ -93,7 +97,9 @@ class BakalariOptionsFlow(config_entries.OptionsFlow):
             self._edit_index = action
             return await self.async_step_edit_child()
 
-        return self.async_show_form(step_id="select_child_to_edit", data_schema=data_schema)
+        return self.async_show_form(
+            step_id="select_child_to_edit", data_schema=data_schema
+        )
 
     async def async_step_add_child(self, user_input=None):
         """Step add child."""
@@ -118,7 +124,9 @@ class BakalariOptionsFlow(config_entries.OptionsFlow):
     async def async_step_select_city(self, user_input=None):
         """Step select city."""
 
-        data_schema = vol.Schema({vol.Required("city"): vol.In(self._schools.get_all_towns())})
+        data_schema = vol.Schema(
+            {vol.Required("city"): vol.In(self._schools.get_all_towns())}
+        )
 
         # we have city selected
         if user_input is not None:
@@ -132,7 +140,8 @@ class BakalariOptionsFlow(config_entries.OptionsFlow):
         """Step select school."""
 
         _schools = [
-            school.name for school in self._schools.get_schools_by_town(self._selected_city)
+            school.name
+            for school in self._schools.get_schools_by_town(self._selected_city)
         ]
 
         data_schema = vol.Schema({vol.Required(CONF_SCHOOL): vol.In(_schools)})
@@ -140,7 +149,9 @@ class BakalariOptionsFlow(config_entries.OptionsFlow):
         if user_input is not None:
             # change school for child
             if self._edit_school_for:
-                self.children[self._edit_school_for][CONF_SCHOOL] = user_input[CONF_SCHOOL]
+                self.children[self._edit_school_for][CONF_SCHOOL] = user_input[
+                    CONF_SCHOOL
+                ]
                 url = self._schools.get_url(name=user_input[CONF_SCHOOL])
                 self.children[self._edit_school_for][CONF_SERVER] = (
                     url if isinstance(url, str) and url else ""
@@ -150,7 +161,9 @@ class BakalariOptionsFlow(config_entries.OptionsFlow):
                 return await self.async_step_edit_child()
 
             self._new_child[CONF_SCHOOL] = user_input[CONF_SCHOOL]  # pyright: ignore[reportOptionalSubscript]
-            self._new_child[CONF_SERVER] = self._schools.get_url(name=user_input[CONF_SCHOOL])  # pyright: ignore[reportOptionalSubscript]
+            self._new_child[CONF_SERVER] = self._schools.get_url(
+                name=user_input[CONF_SCHOOL]
+            )  # pyright: ignore[reportOptionalSubscript]
             return await self.async_step_login()
 
         return self.async_show_form(step_id="select_school", data_schema=data_schema)
@@ -170,7 +183,9 @@ class BakalariOptionsFlow(config_entries.OptionsFlow):
         # we have login data
         if user_input is not None:
             school_url = self._schools.get_url(self._new_child[CONF_SCHOOL])  # pyright: ignore[reportOptionalSubscript]
-            school_url = school_url if isinstance(school_url, str) and school_url else ""
+            school_url = (
+                school_url if isinstance(school_url, str) and school_url else ""
+            )
 
             try:
                 async with Bakalari(school_url) as api:
@@ -192,7 +207,9 @@ class BakalariOptionsFlow(config_entries.OptionsFlow):
             child_id, child = child_from_raw(self._new_child)
             self.children[child_id] = child
 
-            return self.async_create_entry(title="", data={CONF_CHILDREN: self.children})
+            return self.async_create_entry(
+                title="", data={CONF_CHILDREN: self.children}
+            )
 
         # we have to login
         return self.async_show_form(step_id="login", data_schema=data_schema)
@@ -214,7 +231,9 @@ class BakalariOptionsFlow(config_entries.OptionsFlow):
                 vol.Required(CONF_NAME, default=child.get(CONF_NAME, "")): str,
                 vol.Required(CONF_SURNAME, default=child.get(CONF_SURNAME, "")): str,
                 vol.Required(CONF_USERNAME, default=child.get(CONF_USERNAME, "")): str,
-                vol.Optional(school_label, description=child.get(CONF_SCHOOL, "")): bool,
+                vol.Optional(
+                    school_label, description=child.get(CONF_SCHOOL, "")
+                ): bool,
             }
         )
 
@@ -222,13 +241,17 @@ class BakalariOptionsFlow(config_entries.OptionsFlow):
             # Update values
             child[CONF_NAME] = user_input[CONF_NAME]
             child[CONF_SURNAME] = user_input[CONF_SURNAME]
-            child[CONF_SCHOOL] = child.get(CONF_SCHOOL) if not user_input.get(school_label) else ""
+            child[CONF_SCHOOL] = (
+                child.get(CONF_SCHOOL) if not user_input.get(school_label) else ""
+            )
             child[CONF_USERNAME] = user_input[CONF_USERNAME]
 
             self.children[child_id] = child  # type: ignore[assignment]
 
             if not user_input.get(school_label, False):
-                return self.async_create_entry(title="", data={CONF_CHILDREN: self.children})
+                return self.async_create_entry(
+                    title="", data={CONF_CHILDREN: self.children}
+                )
 
             self._edit_school_for = child_id
             self.async_create_entry(title="", data={CONF_CHILDREN: self.children})
@@ -249,6 +272,10 @@ class BakalariOptionsFlow(config_entries.OptionsFlow):
         if user_input is not None:
             child_id = user_input["child_id"]
             self.children.pop(child_id)
-            return self.async_create_entry(title="", data={CONF_CHILDREN: self.children})
+            return self.async_create_entry(
+                title="", data={CONF_CHILDREN: self.children}
+            )
 
-        return self.async_show_form(step_id="select_child_to_delete", data_schema=data_schema)
+        return self.async_show_form(
+            step_id="select_child_to_delete", data_schema=data_schema
+        )

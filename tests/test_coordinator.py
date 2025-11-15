@@ -94,14 +94,16 @@ class FakeBakalariClient:
         subject_id: str | None = None,
         to_dict: bool = True,
         order: str = "desc",
-    ) -> dict[str, Any]:
-        """Return preconfigured snapshot without touching arguments."""
+    ) -> tuple[dict[str, Any], dict[str, str]]:
+        """Return preconfigured snapshot and summary without touching arguments."""
         # Return a shallow copy to reduce mutation side effects in tests
-        return {
+        snapshot = {
             "subjects": dict(self.SNAPSHOT.get("subjects", {})),
             "marks_grouped": dict(self.SNAPSHOT.get("marks_grouped", {})),
             "marks_flat": list(self.SNAPSHOT.get("marks_flat", [])),
         }
+        summary: dict[str, str] = {}
+        return snapshot, summary
 
     async def async_get_messages(self) -> list[FakeMessage]:
         """Return preconfigured messages without touching arguments."""
@@ -129,12 +131,14 @@ def _make_child_options(server: str, user_id: str, **extra: Any) -> dict[str, An
 
 
 @pytest.mark.asyncio
-async def test_coordinator_builds_snapshot_and_emits_events(monkeypatch: pytest.MonkeyPatch):
+async def test_coordinator_builds_snapshot_and_emits_events(
+    monkeypatch: pytest.MonkeyPatch,
+):
     """Test that coordinator builds snapshot and emits events."""
 
     loop = asyncio.get_event_loop()
     hass = FakeHass(loop)
-    ha_frame._hass.hass = hass
+    ha_frame._hass.hass = hass  # pyright: ignore[]
     entry = FakeConfigEntry(
         entry_id="entry-1",
         options={
@@ -242,7 +246,7 @@ async def test_coordinator_event_diff_only_new(monkeypatch: pytest.MonkeyPatch):
     loop = asyncio.get_event_loop()
     hass = FakeHass(loop)
 
-    ha_frame._hass.hass = hass
+    ha_frame._hass.hass = hass  # pyright: ignore[]
     entry = FakeConfigEntry(
         entry_id="entry-2",
         options={
@@ -312,7 +316,7 @@ async def test_coordinator_child_mapping_and_keys(monkeypatch: pytest.MonkeyPatc
     loop = asyncio.get_event_loop()
     hass = FakeHass(loop)
 
-    ha_frame._hass.hass = hass
+    ha_frame._hass.hass = hass  # pyright: ignore[]
     opts_children = {
         "alpha": _make_child_options("servA", "userA", name="Anna"),
         "beta": _make_child_options("servB", "userB", name="Boris"),
@@ -323,7 +327,11 @@ async def test_coordinator_child_mapping_and_keys(monkeypatch: pytest.MonkeyPatc
     )
 
     # Minimal snapshot (no marks) to avoid event noise
-    FakeBakalariClient.SNAPSHOT = {"subjects": {}, "marks_grouped": {}, "marks_flat": []}
+    FakeBakalariClient.SNAPSHOT = {
+        "subjects": {},
+        "marks_grouped": {},
+        "marks_flat": [],
+    }
     FakeBakalariClient.MESSAGES = []
     # Initialize frame helper and patch frame.report_usage before importing coordinator
 

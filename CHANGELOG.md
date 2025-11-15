@@ -1,6 +1,53 @@
-# Changelog
+# # Changelog
 
-# v1.2.0
+## v1.3.0
+
+## ✨ Nové funkce
+
+- Přidány senzory pro jednotlivé předměty
+  - Původní senzor `all-marks` nyní drří pouze metadata k senzorům známek pro využití v Lovelace
+  - každý senzor pro `Předmět` nyní má svá metadata a drží všechny známky z daného předmětu
+  - senzor pro `Předmět` uvádí jako `native_value` celkový počet známek
+  - zrušen limit pro 30 posledních známek v předmětu
+- Nový `snapshot` API pro známky
+  - agregace známek: celkové statistiky (počty, průměr, vážený průměr) a detailní rozpad dle předmětů.
+  - Pomocné atributy pro jednodušší využití agregovaných dat.
+  - Dynamická tvorba senzorů pro jednotlivé předměty na základě dostupných dat z `Bakalářů`
+- Zjednodušené volání API odstraněním generické funkce `_api_call` a zavedením přímých volání knihovny `async_bakalari_api.`
+  
+## 🐛 Opravy chyb
+
+- ošetřeno generování `unique_id`
+- opravena chyba, kdy se senzory generovaly pouze pro poslední díte v seznamu
+- aktualizace agregační funkce, aby užívala již získaná data a zabránilo se opětovnému volání `get_items_for_child`
+
+## 🧹 Refaktoring / Údržba
+
+- Nahrazení několika asynchronních volání jediným voláním pro načtení známek (rychlejší a spolehlivější)
+- Interní zpracování známek přepracováno tak, aby lépe podporovalo agregace a odvozené informace
+- Sledování aktualizací koordinátoru: při objevení nových předmětů se senzory automaticky doplní bez potřeby plného reloadu
+- Odstraněn zastaralý kód související s původním způsobem inicializace senzorů
+- přidán `basedpyright` do CI kontroly i lokální `make all` kontroly
+- přepracováno zpracování agregace známek u podřízených entit, přejmenování a přesunutí agregační funkce, aby byla struktura kódu přehlednější a lépe udržovatelná.
+- vylepšeno zpracování událostí kalendáře díky konzistentnímu nakládání s časovými zónami
+- ošetření okrajových případů, kdy chyběl koncový čas události. Jako výchozí hodnota je použit čas začátku
+- přidány `unity_testy` k ověření `api_calls`
+  - správné chování, při chybějící knihovně
+  - chyby autentizace
+  - obecné chyby
+  - serializace `lock`
+- logovací zprávy nyní mají název modulu a třídy, což zpřehlední výstup a usnadňuje dohledání původu zprávy
+
+---
+
+## 📦 Technické
+
+- Verze integrace: `v1.3.0`
+- Minimální verze Home Assistant: `2025.9+`
+- Předchozí tag: `v1.2.0`
+- Autoři přispěli: @schizza
+
+## v1.2.0
 
 ## ✨ Nové funkce
 
@@ -10,15 +57,18 @@
 ## 🧹 Refaktoring / Údržba
 
 - bump verze verze API na 0.6.0
+
 ---
+
 ## 📦 Technické
+
 - Verze integrace: `v1.2.0`
 - Vyžaduje API verzi `0.6.0+`
 - Minimální verze Home Assistant: `2025.9+`
 - Předchozí tag: `v1.1.0`
 - Autoři přispěli: @schizza
 
-# v1.1.0
+## v1.1.0
 
 ## ✨ Nové funkce
 
@@ -75,7 +125,7 @@ Podpora migrace jedinečného ID do nového formátu založeného na ID konfigur
 - Předchozí tag: `v1.0.0`
 - Autoři přispěli: @schizza
 
-# 1.0.0
+## 1.0.0
 
 ## ✨ Nové funkce
 
@@ -97,29 +147,32 @@ Podpora migrace jedinečného ID do nového formátu založeného na ID konfigur
 - Zachovává zpětnou kompatibilitu ponecháním starých entit.
 
 ---
+
 ## 📦 Technické
+
 - Verze integrace: `v1.0.0`
 - Vyžaduje API verze: `0.5.0`
 - Minimální verze Home Assistant: `2025.9+`
 - Předchozí tag: `v0.1.1`
 - Autoři přispěli: @schizza
 
-# 0.1.1
+## 0.1.1
 
 ## ✨ Nové funkce
 
 Podpora Rozvrhu `Timetable module`
-  -   V API přidána možnost stažení aktuálního a permanentního rozvrhu.
+- V API přidána možnost stažení aktuálního a permanentního rozvrhu.
 
 ## Breaking changes
 
  Karty Lovelace přesunuty do vlastního repozitáře  (schizza/bakalari-ha-frontend)
- - smazan www/bakalari-cards.js
- - karty pro Lovelace se nyní instalují přes HACS ve vlastním repozitáři
+
+- smazan www/bakalari-cards.js
+- karty pro Lovelace se nyní instalují přes HACS ve vlastním repozitáři
 
 ## 🐛 Opravy chyb
 
- - funkce pro `timetable_actual` stahuje v módu dnes +- 7 dní (reálně tedy 3 týdny rozvrhu)
+- funkce pro `timetable_actual` stahuje v módu dnes +- 7 dní (reálně tedy 3 týdny rozvrhu)
 
 ## 🧹 Refaktoring / Údržba
 
@@ -127,19 +180,21 @@ Podpora Rozvrhu `Timetable module`
 
 - Chore/download counts (#34) (#35) @schizza
 
-  * Enable zip_release for Bakaláři HA
-  * Add GitHub Actions workflow for ZIP asset release
+  - Enable zip_release for Bakaláři HA
+  - Add GitHub Actions workflow for ZIP asset release
 
 Added download badges for total and latest releases.
 
-* Add commitish and filter-by-commitish options
-* Update release drafter configuration for versioning
-* Add commitish and filter-by-commitish to workflow
-* Add initial changelog file
-* Add workflow to update CHANGELOG on release
+- Add commitish and filter-by-commitish options
+- Update release drafter configuration for versioning
+- Add commitish and filter-by-commitish to workflow
+- Add initial changelog file
+- Add workflow to update CHANGELOG on release
 
 ---
+
 ## 📦 Technické
+
 - Verze integrace: `v0.1.1`
 - Minimální verze Home Assistant: `2025.9+`
 - Předchozí tag: `v0.1.0`

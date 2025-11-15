@@ -48,20 +48,35 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         schools_cache = await schools_storage.async_load()
 
         if schools_cache is None:
-            _LOGGER.debug("Fetching new schools from server ")
+            _LOGGER.debug(
+                "[class=%s module=%s] Fetching new schools from server",
+                self.__class__.__name__,
+                __name__,
+            )
 
             async with Bakalari() as api:
                 schools_cache = await api.schools_list()
 
             if schools_cache is None:
-                _LOGGER.error("Schools cannot be fetched from server!")
+                _LOGGER.error(
+                    "[class=%s module=%s] Schools cannot be fetched from server!",
+                    self.__class__.__name__,
+                    __name__,
+                )
                 return False
 
             await schools_storage.async_save(schools_cache.school_list)
-            _LOGGER.debug("Schools saved to cache.")
+            _LOGGER.info(
+                "[class=%s module=%s] Schools saved to cache.",
+                self.__class__.__name__,
+                __name__,
+            )
         else:
-            _LOGGER.debug("Schools loaded from cache.")
-
+            _LOGGER.info(
+                "[class=%s module=%s] Schools loaded from cache.",
+                self.__class__.__name__,
+                __name__,
+            )
         return False
 
     async def async_step_user(self, user_input=None) -> config_entries.ConfigFlowResult:
@@ -78,18 +93,26 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         return self.async_show_progress_done(next_step_id="complete")
 
-    async def async_step_complete(self, user_input=None) -> config_entries.ConfigFlowResult:
+    async def async_step_complete(
+        self, user_input=None
+    ) -> config_entries.ConfigFlowResult:
         """Handle the completion step."""
 
-        return self.async_create_entry(title="Bakaláři", data={}, options={"children": []})
+        return self.async_create_entry(
+            title="Bakaláři", data={}, options={"children": []}
+        )
 
-    async def async_step_reauth(self, data: dict | None) -> config_entries.ConfigFlowResult:
+    async def async_step_reauth(
+        self, data: dict | None
+    ) -> config_entries.ConfigFlowResult:
         """Handle the reauthentication step."""
 
         self._reauth_data = data or {}
         return await self.async_step_reauth_confirm()
 
-    async def async_step_reauth_confirm(self, user_input=None) -> config_entries.ConfigFlowResult:
+    async def async_step_reauth_confirm(
+        self, user_input=None
+    ) -> config_entries.ConfigFlowResult:
         """Handle the reauthentication confirmation step."""
 
         if user_input is None:
@@ -118,7 +141,9 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         try:
             session = async_get_clientsession(self.hass)
             async with Bakalari(server, session=session) as api:
-                credentials: Credentials = await api.first_login(username, user_input["password"])
+                credentials: Credentials = await api.first_login(
+                    username, user_input["password"]
+                )
         except Ex.InvalidLogin:
             return self.async_show_form(
                 step_id="reauth_confirm",

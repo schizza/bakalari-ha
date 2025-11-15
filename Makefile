@@ -11,7 +11,7 @@ PYTEST := $(PYTHON) -m pytest
 
 # Verze / cesty
 HA_VERSION := 2025.9.4
-BAKALARI_VERSION := 0.6.0
+BAKALARI_VERSION := 0.7.0
 HA_CONFIG := ./config
 COMPONENT_PATH := custom_components/bakalari
 
@@ -71,7 +71,8 @@ install: venv
 		ruff pre-commit \
 		pytest pytest-asyncio pytest-homeassistant-custom-component \
 		async-bakalari-api==$(BAKALARI_VERSION) \
-		bump-my-version PyTurboJPEG
+		bump-my-version PyTurboJPEG \
+		basedpyright
 	$(MAKE) hassfest-setup
 
 update:
@@ -84,8 +85,12 @@ all: ci coverage validate-local check-versions
 
 # ====== Lint & test ======
 lint:
+	@echo -n "Ruff check : "
 	@$(RUFF) check .
+	@echo -n "Ruff format: "
 	@$(RUFF) format --check .
+	@set -o pipefail; \
+		basedpyright --outputjson | python script/pretty_basedpyright.py
 
 fmt:
 	@$(RUFF) format .

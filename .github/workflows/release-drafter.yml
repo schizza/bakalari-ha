@@ -1,11 +1,9 @@
 name: Release Drafter (dev)
 
 on:
-  push:
-    branches: [ dev ]
   pull_request:
     branches: [ dev ]
-    types: [opened, reopened, synchronize, labeled, unlabeled, edited, closed]
+    types: [closed]
 
 permissions:
   contents: write
