@@ -44,36 +44,42 @@ async def async_setup_entry(
     entities = []
     data_now = coord.data or {}
 
-    # Base sensors
+    # Create sensors for children.
     for child in coord.child_list:
+        # Base senors
+        _LOGGER.debug(
+            "[class=%s module=%s] Creating base sensors for child %s",
+            async_setup_entry.__qualname__,
+            __name__,
+            child,
+        )
         entities.append(BakalariNewMarksSensor(coord, child))
         entities.append(BakalariLastMarkSensor(coord, child))
-        # entities.append(BakalariAllMarksSensor(coord, child))
         entities.append(BakalariMessagesSensor(coord, child))
         entities.append(BakalariTimetableSensor(coord, child))
         entities.append(BakalariIndexHelperSensor(coord, child))
 
-    # Per-subject sensors
-    #
-    _LOGGER.debug(
-        "[class=%s module=%s] Get child subjects: %s",
-        async_setup_entry.__qualname__,
-        __name__,
-        get_child_subjects(coord, child),
-    )
-
-    subjects_dict: dict[str, Any] = get_child_subjects(coord, child)
-    subjects: dict[str, dict[str, Any]] = subjects_dict.get("mapping_names", {})
-    subj_sensors: list[dict[str, str]] = [
-        {"id": s_id, "abbr": s_data["abbr"]} for s_id, s_data in subjects.items()
-    ]  # list of {subject_id, subject_abbr}, ...
-
-    entities.extend(
-        BakalariSubjectMarksSensor(
-            coord, child, subject_sensor["id"], subject_sensor["abbr"]
+        # Per-subject sensors
+        subjects_dict: dict[str, Any] = get_child_subjects(coord, child)
+        _LOGGER.debug(
+            "[class=%s module=%s] Setting up subjects for child: %s: %s",
+            async_setup_entry.__qualname__,
+            __name__,
+            child,
+            subjects_dict["friendly_names"],
         )
-        for subject_sensor in subj_sensors
-    )
+
+        subjects: dict[str, dict[str, Any]] = subjects_dict.get("mapping_names", {})
+        subj_sensors: list[dict[str, str]] = [
+            {"id": s_id, "abbr": s_data["abbr"]} for s_id, s_data in subjects.items()
+        ]
+
+        entities.extend(
+            BakalariSubjectMarksSensor(
+                coord, child, subject_sensor["id"], subject_sensor["abbr"]
+            )
+            for subject_sensor in subj_sensors
+        )
 
     async_add_entities(entities, update_before_add=True)
 
