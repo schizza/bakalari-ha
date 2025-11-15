@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 
+from async_bakalari_api import configure_logging
 from homeassistant.components import websocket_api
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
@@ -16,7 +17,6 @@ from .coordinator import BakalariCoordinator
 from .utils import device_ident
 
 _LOGGER = logging.getLogger(__name__)
-
 
 CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 
@@ -61,19 +61,27 @@ async def async_setup(hass: HomeAssistant, config) -> bool:
     return True
 
 
-def _dev_console_handler_for(logger: logging.Logger) -> None:
-    console_formater = CustomFormatter()
-    if not any(isinstance(h, logging.StreamHandler) for h in logger.handlers):
-        h = logging.StreamHandler()
-        h.setLevel(logging.NOTSET)
-        h.setFormatter(console_formater)
-        logger.addHandler(h)
+def _dev_console_handler_for(logger: logging.Logger, formatter: logging.Formatter | None) -> None:
+    """Přidej konzolový handler jen když žádný není – vhodné pro lokální skripty, NE pro HA."""
+    # pokud už nějaké handlery existují (na loggeru NEBO u předků), nedělej nic
+    # if logger.hasHandlers():
+    #     return
+
+    h = logging.StreamHandler()  # default: stderr
+    if formatter is None:
+        formatter = logging.Formatter("[%(levelname)s] %(name)s: %(message)s")
+    h.setFormatter(formatter)
+
+    # level nech na loggeru; handler level nenech NOTSET explicitně – zbytečné
+    logger.addHandler(h)
+    # Zachovej propagaci, ať se to dá přesměrovat nadřazeným loggerem, pokud se objeví.
+    logger.propagate = False
+    configure_logging(logger.getEffectiveLevel())
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up of Bakalari component."""
-    _dev_console_handler_for(logging.getLogger("custom_components.bakalari"))
-    _LOGGER.propagate = False
+    _dev_console_handler_for(logging.getLogger("custom_components.bakalari"), CustomFormatter())
 
     coord = BakalariCoordinator(hass, entry)
 
@@ -99,7 +107,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         await coord.async_request_refresh()
 
     async def _srv_refresh(call) -> None:  # noqa: ARG001
-        await coord.async_request_refresh()
+        await coord.async_refresh()
 
     hass.services.async_register(DOMAIN, "mark_as_seen", _srv_mark_seen)
     hass.services.async_register(DOMAIN, "refresh", _srv_refresh)
