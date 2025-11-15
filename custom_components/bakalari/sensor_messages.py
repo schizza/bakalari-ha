@@ -10,7 +10,9 @@ from .coordinator import BakalariCoordinator, Child
 from .entity import BakalariEntity
 
 
-def _get_messages_for_child(coord: BakalariCoordinator, child_key: str) -> list[dict[str, Any]]:
+def _get_messages_for_child(
+    coord: BakalariCoordinator, child_key: str
+) -> list[dict[str, Any]]:
     """Get messages list for the child from coordinator data."""
     data = coord.data or {}
     by_child = data.get("messages_by_child") or {}

@@ -186,7 +186,9 @@ class BakalariClient:
                     return current
                 if mode == "callable":
                     if callable_fn is None:
-                        raise ValueError("callable_fn cannot be None in 'callable' mode.")
+                        raise ValueError(
+                            "callable_fn cannot be None in 'callable' mode."
+                        )
                     return await callable_fn(_lib)
 
                 raise ValueError(f"Unsupported mode: {mode}")
@@ -197,7 +199,10 @@ class BakalariClient:
                 Ex.InvalidRefreshToken,
             ) as err:
                 _LOGGER.error(
-                    "Authentication error while %s for child_id=%s: %s", label, self.child_id, err
+                    "Authentication error while %s for child_id=%s: %s",
+                    label,
+                    self.child_id,
+                    err,
                 )
                 await self._reset_tokens_and_client()
                 await self._start_reauth(reauth_reason or "Invalid credentials")
@@ -230,7 +235,9 @@ class BakalariClient:
                         func = getattr(current, step["method"])
                         out = func(*step_args, **step_kwargs)
                         last_out = await out if asyncio.iscoroutine(out) else out
-                        current = last_out if step.get("follow_result", False) else target
+                        current = (
+                            last_out if step.get("follow_result", False) else target
+                        )
                     return last_out  # type: ignore[return-value] # noqa: TRY300
                 except (
                     Ex.RefreshTokenExpired,
@@ -239,7 +246,10 @@ class BakalariClient:
                     Ex.InvalidRefreshToken,
                 ) as err:
                     _LOGGER.error(
-                        "Auth error while %s for child_id=%s: %s", label, self.child_id, err
+                        "Auth error while %s for child_id=%s: %s",
+                        label,
+                        self.child_id,
+                        err,
                     )
                     await self._reset_tokens_and_client()
                     await self._start_reauth(reauth_reason or "Invalid credentials")
@@ -263,7 +273,9 @@ class BakalariClient:
 
     def _current_entry(self) -> ConfigEntry:
         """Get the current config entry."""
-        return self.hass.config_entries.async_get_entry(self.entry.entry_id) or self.entry
+        return (
+            self.hass.config_entries.async_get_entry(self.entry.entry_id) or self.entry
+        )
 
     def _current_child(self) -> ChildRecord:
         """Get the current child record."""
@@ -303,7 +315,9 @@ class BakalariClient:
                     )
 
                     session = async_get_clientsession(self.hass)
-                    self.lib = Bakalari(server=server, credentials=cred, session=session)
+                    self.lib = Bakalari(
+                        server=server, credentials=cred, session=session
+                    )
                     _LOGGER.debug(
                         "[BakalariClient._is_lib]: Bakalari library instance created for child_id=%s With parameters: %s",
                         self.child_id,
@@ -392,21 +406,28 @@ class BakalariClient:
                 )
             )
         except Exception:  # noqa: BLE001
-            _LOGGER.exception("Failed to start reauth flow for child_id=%s", self.child_id)
+            _LOGGER.exception(
+                "Failed to start reauth flow for child_id=%s", self.child_id
+            )
             await self._clear_reauth_flag()
 
     def _snapshot_tokens(self) -> tuple[Any, Any] | None:
         """Snapshot tokens."""
 
         if not self.lib or not getattr(self.lib, "credentials", None):
-            _LOGGER.error("[BakalariClient._snapshot_tokens] No library or credentials available.")
+            _LOGGER.error(
+                "[BakalariClient._snapshot_tokens] No library or credentials available."
+            )
             return None
         cred = self.lib.credentials
         _LOGGER.debug(
             "[BakalariClient._snapshot_tokens] Snapshot tokens for child_id=%s:",
             self.child_id,
         )
-        return (getattr(cred, CONF_ACCESS_TOKEN, None), getattr(cred, CONF_REFRESH_TOKEN, None))
+        return (
+            getattr(cred, CONF_ACCESS_TOKEN, None),
+            getattr(cred, CONF_REFRESH_TOKEN, None),
+        )
 
     def _tokens_changed(self) -> bool:
         """Verify token change."""
@@ -456,7 +477,8 @@ class BakalariClient:
         start_of_school_year = datetime(year=today.year, month=10, day=1).date()
 
         _LOGGER.debug(
-            "[BakalariClient.async_get_messages]: Fetching messages for child_id=%s", self.child_id
+            "[BakalariClient.async_get_messages]: Fetching messages for child_id=%s",
+            self.child_id,
         )
         data = await self._api_call(
             label="fetching_messages",
@@ -466,7 +488,12 @@ class BakalariClient:
             mode="chain",
             chain_module=Komens,
             chain=[
-                {"method": "fetch_messages", "args": (), "kwargs": {}, "follow_result": True},
+                {
+                    "method": "fetch_messages",
+                    "args": (),
+                    "kwargs": {},
+                    "follow_result": True,
+                },
                 {
                     "method": "get_messages_by_date",
                     "args": (start_of_school_year,),
@@ -532,7 +559,9 @@ class BakalariClient:
             ],
         )
 
-    @api_call(label="get_marks", default=([], {}), reauth_reason="get_marks", use_lock=True)
+    @api_call(
+        label="get_marks", default=([], {}), reauth_reason="get_marks", use_lock=True
+    )
     async def get_marks(self, lib) -> tuple[list[SubjectsBase], dict[str, str]]:
         """Fetch marks from server."""
 
@@ -549,7 +578,7 @@ class BakalariClient:
         reauth_reason="get_marks_snapshoot",
         use_lock=True,
     )
-    async def get_marks_snapshot(
+    async def async_get_marks_snapshot(
         self,
         lib,
         *,
@@ -586,64 +615,12 @@ class BakalariClient:
         _marks = Marks(lib)
         await _marks.fetch_marks()
         _snapshot = await _marks.get_snapshot(
-            date_from=df, date_to=dt_to, subject_id=subject_id, order=order, to_dict=to_dict
+            date_from=df,
+            date_to=dt_to,
+            subject_id=subject_id,
+            order=order,
+            to_dict=to_dict,
         )
         _all_marks_summary = await _marks.get_all_marks_summary()
 
         return (dict(_snapshot), _all_marks_summary)
-
-    async def async_get_marks_snapshot(
-        self,
-        *,
-        date_from: datetime | date | None = None,
-        date_to: datetime | date | None = None,
-        subject_id: str | None = None,
-        to_dict: bool = True,
-        order: str = "desc",
-    ) -> dict[str, Any]:
-        """Get compact snapshot of marks (subjects, grouped, flat) using new API."""
-
-        # Normalize date inputs to datetime (library expects datetime)
-        df = None
-        dt_to = None
-        if date_from is not None:
-            if isinstance(date_from, datetime):
-                df = date_from
-            else:
-                df = datetime.combine(date_from, datetime.min.time())
-        if date_to is not None:
-            if isinstance(date_to, datetime):
-                dt_to = date_to
-            else:
-                dt_to = datetime.combine(date_to, datetime.min.time())
-
-        default: dict[str, Any] = {"subjects": {}, "marks_grouped": {}, "marks_flat": []}
-        _LOGGER.debug(
-            "[BakalariClient.async_get_marks_snapshot]: Fetching marks snapshot (from=%s to=%s subject_id=%s order=%s)",
-            df,
-            dt_to,
-            subject_id,
-            order,
-        )
-
-        return await self._api_call(
-            label="fetching marks snapshot",
-            reauth_reason="marks",
-            default=default,
-            mode="chain",
-            chain_module=Marks,
-            chain=[
-                {"method": "fetch_marks"},
-                {
-                    "method": "get_snapshot",
-                    "kwargs": {
-                        "date_from": df,
-                        "date_to": dt_to,
-                        "subject_id": subject_id,
-                        "order": order,
-                        "to_dict": to_dict,
-                    },
-                    "follow_result": True,
-                },
-            ],
-        )

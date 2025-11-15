@@ -23,7 +23,9 @@ SCAN_INTERVAL = timedelta(minutes=120)
 
 
 async def async_setup_entry(
-    hass: HomeAssistant, entry: config_entries.ConfigEntry, async_add_entities: AddEntitiesCallback
+    hass: HomeAssistant,
+    entry: config_entries.ConfigEntry,
+    async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up Bakalari calendar entities from a config entry."""
 
@@ -51,7 +53,11 @@ class BakalariTimetableCalendar(CalendarEntity):
     """Calendar entity representing child's school timetable."""
 
     def __init__(
-        self, hass: HomeAssistant, entry: config_entries.ConfigEntry, child_id: str, child_name: str
+        self,
+        hass: HomeAssistant,
+        entry: config_entries.ConfigEntry,
+        child_id: str,
+        child_name: str,
     ) -> None:
         """Initialize the calendar entity."""
         self._hass = hass
@@ -118,7 +124,11 @@ class BakalariTimetableCalendar(CalendarEntity):
     async def _ensure_events_loaded(self) -> None:
         """Load timetable and build the events cache if expired."""
         now = dt_util.utcnow()
-        if self._cache_ts and (now - self._cache_ts) <= self._cache_ttl and self._events_cache:
+        if (
+            self._cache_ts
+            and (now - self._cache_ts) <= self._cache_ttl
+            and self._events_cache
+        ):
             return
 
         _LOGGER.warning(
@@ -156,7 +166,9 @@ class BakalariTimetableCalendar(CalendarEntity):
                 date_part = getattr(day, "date", None)
                 if date_part is None:
                     continue
-                day_date = date_part.date() if isinstance(date_part, datetime) else date_part
+                day_date = (
+                    date_part.date() if isinstance(date_part, datetime) else date_part
+                )
                 atoms = getattr(day, "atoms", []) or []
                 for atom in atoms:
                     hour_id = getattr(atom, "hour_id", None)
@@ -165,7 +177,9 @@ class BakalariTimetableCalendar(CalendarEntity):
                     hour = hours.get(hour_id)
                     if hour is None:
                         continue
-                    start = _combine_local_utc(day_date, getattr(hour, "begin_time", ""))
+                    start = _combine_local_utc(
+                        day_date, getattr(hour, "begin_time", "")
+                    )
                     end = _combine_local_utc(day_date, getattr(hour, "end_time", ""))
                     if start is None:
                         continue
@@ -195,7 +209,9 @@ class BakalariTimetableCalendar(CalendarEntity):
                         if ch_time:
                             ch_label += f" ({ch_time})"
                         description_parts.append(ch_label)
-                    description = " | ".join([p for p in description_parts if p]) or None
+                    description = (
+                        " | ".join([p for p in description_parts if p]) or None
+                    )
                     location = _label_room(room)
                     events.append(
                         CalendarEvent(
@@ -223,7 +239,8 @@ class BakalariTimetableCalendar(CalendarEntity):
 
         # Try to build a summary/description/location from common keys
         summary = (
-            _first_str(item, ["subject", "caption", "name", "title", "subject_name"]) or "Lekce"
+            _first_str(item, ["subject", "caption", "name", "title", "subject_name"])
+            or "Lekce"
         )
         teacher = _first_str(item, ["teacher", "teacher_name", "tutor", "lector"])
         room = _first_str(item, ["room", "classroom", "room_name", "classroom_name"])
@@ -287,7 +304,8 @@ def _label_room(room: Any) -> str | None:
 def _label_groups(groups: Any) -> str | None:
     try:
         items = [
-            getattr(g, "abbrev", None) or getattr(g, "name", None) or "" for g in (groups or [])
+            getattr(g, "abbrev", None) or getattr(g, "name", None) or ""
+            for g in (groups or [])
         ]
         items = [i for i in items if i]
         return ",".join(items) if items else None

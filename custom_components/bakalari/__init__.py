@@ -4,13 +4,13 @@ from __future__ import annotations
 
 import logging
 
-import voluptuous as vol
 from async_bakalari_api import configure_logging
 from homeassistant.components import websocket_api
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers import device_registry as dr
+import voluptuous as vol
 
 from .const import DOMAIN, MANUFACTURER, MODEL, PLATFORMS
 from .coordinator import BakalariCoordinator

@@ -107,15 +107,15 @@ class BakalariSubjectMarksSensor(BakalariEntity, SensorEntity):
         self._subject_key = subject_id
         self._subject_abbr: str = subject_abbr
         display = (label or self._subject_abbr).strip()
-        self._attr_unique_id = (
-            f"{coordinator.entry.entry_id}:{child.key}:subject:{sanitize(self._subject_key)}"
-        )
+        self._attr_unique_id = f"{coordinator.entry.entry_id}:{child.key}:subject:{sanitize(self._subject_key)}"
         self._attr_name = f"Známky {display} - {child.short_name}"
         self._friendly_name = f" Známky {display} - {child.short_name}"
 
     def _matches_subject(self, item: dict[str, Any]) -> bool:
         """Return True if the given mark item belongs to this sensor's subject."""
-        subj_id = str(item.get("subject_id") or item.get("subject") or "").strip() or None
+        subj_id = (
+            str(item.get("subject_id") or item.get("subject") or "").strip() or None
+        )
         subj_abbr = str(item.get("subject_abbr") or "").strip()
         subj_name = str(item.get("subject_name") or "").strip()
         key = subj_id or subj_abbr or subj_name or "unknown"
@@ -199,7 +199,7 @@ class BakalariAllMarksSensor(BakalariEntity, SensorEntity):
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
         """Return aggregated attributes - overall stats and per-subject breakdown."""
-        agg = _aggregate_marks_for_child(self.coordinator, self.child.key)
+        agg = aggregate_marks_for_child(self.coordinator, self.child.key)
         overall = agg.get("overall", {})
         return {
             "child_key": self.child.key,

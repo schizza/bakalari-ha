@@ -59,7 +59,9 @@ class BakalariCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self.entry = entry
 
         # Normalize children map from options and build composite-keyed map
-        children_raw: ChildrenMap = ensure_children_dict(entry.options.get(CONF_CHILDREN, {}))
+        children_raw: ChildrenMap = ensure_children_dict(
+            entry.options.get(CONF_CHILDREN, {})
+        )
         self.children: ChildrenMap = {}
         self._option_key_by_child_key: dict[str, str] = {}
         child_list: list[Child] = []
@@ -92,9 +94,7 @@ class BakalariCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                     tmp_cr[CONF_REFRESH_TOKEN] = rt
                 self.children[ck] = tmp_cr
 
-                display_name = (
-                    f"{cr.get('name', '')} {cr.get('surname', '')} ({cr.get('school', '')})".strip()
-                )
+                display_name = f"{cr.get('name', '')} {cr.get('surname', '')} ({cr.get('school', '')})".strip()
                 child_list.append(
                     Child(
                         key=ck,
@@ -105,7 +105,9 @@ class BakalariCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                     )
                 )
             except Exception:  # noqa: BLE001
-                _LOGGER.exception("Failed to normalize child record for id=%s: %s", cid, cr)
+                _LOGGER.exception(
+                    "Failed to normalize child record for id=%s: %s", cid, cr
+                )
 
         self.child_list: list[Child] = child_list
 
@@ -160,7 +162,9 @@ class BakalariCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         """Fetch and prepare marks, messages and timetable for all children."""
         try:
             start_year, end_year = school_year_bounds(
-                dt.now().date(), CONF_SCHOOL_YEAR_START_MONTH, CONF_SCHOOL_YEAR_START_DAY
+                dt.now().date(),
+                CONF_SCHOOL_YEAR_START_MONTH,
+                CONF_SCHOOL_YEAR_START_DAY,
             )
 
             subjects_by_child: dict[str, dict[str, dict[str, Any]]] = {}
@@ -242,14 +246,18 @@ class BakalariCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             else date_from
         )
         dt_to = (
-            datetime.combine(date_to, datetime.min.time()) if isinstance(date_to, date) else date_to
+            datetime.combine(date_to, datetime.min.time())
+            if isinstance(date_to, date)
+            else date_to
         )
 
-        snapshot, all_marks_summary = await client.get_marks_snapshot(
+        snapshot, all_marks_summary = await client.async_get_marks_snapshot(
             date_from=dt_from, date_to=dt_to, to_dict=True, order="desc"
         )
         _LOGGER.debug(
-            "[Coordinator._fetch_child]: Snapshot: %s \n Summary: %s", snapshot, all_marks_summary
+            "[Coordinator._fetch_child]: Snapshot: %s \n Summary: %s",
+            snapshot,
+            all_marks_summary,
         )
 
         # Messages
@@ -271,7 +279,9 @@ class BakalariCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             "_range": (date_from, date_to),
         }
 
-    def _parse_messages(self, child: Child, raw: dict[str, Any]) -> list[dict[str, Any]]:
+    def _parse_messages(
+        self, child: Child, raw: dict[str, Any]
+    ) -> list[dict[str, Any]]:
         """Normalize raw messages into a list of dicts."""
         data = raw.get("messages") or []
         items: list[dict[str, Any]] = []

@@ -16,7 +16,9 @@ from .coordinator import BakalariCoordinator, Child
 _LOGGER = logging.getLogger(__name__)
 
 
-def _subjects_sensors_map(coordinator: BakalariCoordinator, child: Child) -> dict[str, str]:
+def _subjects_sensors_map(
+    coordinator: BakalariCoordinator, child: Child
+) -> dict[str, str]:
     """Generate a mapping of sensors names to subject names."""
     entry_id = coordinator.entry.entry_id
 
@@ -34,29 +36,36 @@ def _subjects_sensors_map(coordinator: BakalariCoordinator, child: Child) -> dic
             continue
 
         subject_key = uid.split(":subject:", 1)[1]
-        name = (
-            ent.entity_id
-        )  #  or we can fetch getattr(ent, "original_name", None) or getattr(ent, "name", None)
+        name = ent.entity_id  #  or we can fetch getattr(ent, "original_name", None) or getattr(ent, "name", None)
 
         result[str(subject_key)] = name
 
     return result
 
 
-def get_child_subjects(coordinator: BakalariCoordinator, child: Child) -> dict[str, Any]:
+def get_child_subjects(
+    coordinator: BakalariCoordinator, child: Child
+) -> dict[str, Any]:
     """Get childs subjects."""
 
     data = coordinator.data
 
-    subjs: dict[str, dict[str, Any]] = data.get("subjects_by_child", {}).get(child.key, {})
+    subjs: dict[str, dict[str, Any]] = data.get("subjects_by_child", {}).get(
+        child.key, {}
+    )
     if not subjs:
-        _LOGGER.error("No subjects found for child %s. Data received: %s", child.key, subjs)
+        _LOGGER.error(
+            "No subjects found for child %s. Data received: %s", child.key, subjs
+        )
         return {}
 
     friendly_names: list[str] = [subj["name"].strip() for subj in subjs.values()]
 
     mapping_names: dict[str, dict[str, Any]] = {
-        mapping["id"].strip(): {"name": mapping["name"].strip(), "abbr": mapping["abbr"].strip()}
+        mapping["id"].strip(): {
+            "name": mapping["name"].strip(),
+            "abbr": mapping["abbr"].strip(),
+        }
         for mapping in subjs.values()
     }
 
@@ -72,7 +81,9 @@ def get_child_subjects(coordinator: BakalariCoordinator, child: Child) -> dict[s
     }
 
 
-def derive_subjects_from_data(data: dict[str, Any], child_key: str) -> list[tuple[str, str]]:
+def derive_subjects_from_data(
+    data: dict[str, Any], child_key: str
+) -> list[tuple[str, str]]:
     """Return a list of tuples (subject_key, label) derived from current coordinator data.
 
     Subject key is stable priority order: subject_id or subject_abbr or subject_name or "unknown".
@@ -86,12 +97,19 @@ def derive_subjects_from_data(data: dict[str, Any], child_key: str) -> list[tupl
         A list of (subject_key, label) pairs.
 
     """
-    subjects_map: dict[str, Any] = (data.get("subjects_by_child") or {}).get(child_key, {}) or {}
+    subjects_map: dict[str, Any] = (data.get("subjects_by_child") or {}).get(
+        child_key, {}
+    ) or {}
     derived: list[tuple[str, str]] = []
 
     if isinstance(subjects_map, dict) and subjects_map:
         for s in list(subjects_map.values()):
-            sid = str(s.get("id") or s.get("subject_id") or s.get("subject") or "").strip() or None
+            sid = (
+                str(
+                    s.get("id") or s.get("subject_id") or s.get("subject") or ""
+                ).strip()
+                or None
+            )
             sabbr = str(s.get("abbr") or s.get("subject_abbr") or "").strip()
             sname = str(s.get("name") or s.get("subject_name") or "").strip()
             skey = sid or sabbr or sname or "unknown"
@@ -150,7 +168,9 @@ def seed_created_subjects_from_data(
 
     created: dict[str, set[str]] = {}
     for ch in coord.child_list:
-        keys = {skey for (skey, _label) in derive_subjects_from_data(coord.data, ch.key)}
+        keys = {
+            skey for (skey, _label) in derive_subjects_from_data(coord.data, ch.key)
+        }
         created[ch.key] = set(keys)
     return created
 
@@ -193,7 +213,9 @@ def sanitize(sanitize: str) -> str:
 
 
 def aggregate_marks_for_child(
-    coord: BakalariCoordinator, child_key: str, items: list[dict[str, Any]] | None = None
+    coord: BakalariCoordinator,
+    child_key: str,
+    items: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     """Aggregate marks by subject and compute overall statistics for a child."""
     if not items:
@@ -253,8 +275,12 @@ def aggregate_marks_for_child(
 
         # Keep the latest mark info per subject (items are expected in descending time order)
         if agg["last_text"] is None:
-            last_text = (it.get("mark_text") or it.get("points_text") or "").strip() or None
-            last_date = it.get("date") or it.get("created") or it.get("inserted") or None
+            last_text = (
+                it.get("mark_text") or it.get("points_text") or ""
+            ).strip() or None
+            last_date = (
+                it.get("date") or it.get("created") or it.get("inserted") or None
+            )
             agg["last_text"] = last_text
             agg["last_date"] = last_date
 
@@ -272,15 +298,21 @@ def aggregate_marks_for_child(
         subjects.append(s)
 
     # Sort subjects naturally: first by abbr, then by name
-    subjects.sort(key=lambda s: (s.get("subject_abbr") or "", s.get("subject_name") or ""))
+    subjects.sort(
+        key=lambda s: (s.get("subject_abbr") or "", s.get("subject_name") or "")
+    )
 
     overall = {
         "total": total,
         "new_count": new_count,
         "numeric_count": overall_numeric,
         "non_numeric_count": overall_non_numeric,
-        "average": round(overall_sum / overall_numeric, 3) if overall_numeric > 0 else None,
-        "weighted_average": round(overall_wsum / overall_w, 3) if overall_w > 0 else None,
+        "average": round(overall_sum / overall_numeric, 3)
+        if overall_numeric > 0
+        else None,
+        "weighted_average": round(overall_wsum / overall_w, 3)
+        if overall_w > 0
+        else None,
     }
 
     return {
@@ -298,7 +330,11 @@ def _parse_numeric_mark(item: dict[str, Any]) -> tuple[float | None, float]:
         if isinstance(v, int | float):
             w_raw = item.get("weight") or item.get("coef") or item.get("coefficient")
             try:
-                w = float(w_raw) if w_raw is not None and str(w_raw).strip() != "" else 1.0
+                w = (
+                    float(w_raw)
+                    if w_raw is not None and str(w_raw).strip() != ""
+                    else 1.0
+                )
             except Exception:  # noqa: BLE001
                 w = 1.0
             return float(v), w
@@ -321,7 +357,9 @@ def _parse_numeric_mark(item: dict[str, Any]) -> tuple[float | None, float]:
     return val, w
 
 
-def _get_items_for_child(coord: BakalariCoordinator, child_key: str) -> list[dict[str, Any]]:
+def _get_items_for_child(
+    coord: BakalariCoordinator, child_key: str
+) -> list[dict[str, Any]]:
     """Get marks list for the child from coordinator data."""
     data = coord.data or {}
     by_child = data.get("marks_by_child") or {}

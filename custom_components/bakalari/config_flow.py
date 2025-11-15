@@ -78,18 +78,26 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         return self.async_show_progress_done(next_step_id="complete")
 
-    async def async_step_complete(self, user_input=None) -> config_entries.ConfigFlowResult:
+    async def async_step_complete(
+        self, user_input=None
+    ) -> config_entries.ConfigFlowResult:
         """Handle the completion step."""
 
-        return self.async_create_entry(title="Bakaláři", data={}, options={"children": []})
+        return self.async_create_entry(
+            title="Bakaláři", data={}, options={"children": []}
+        )
 
-    async def async_step_reauth(self, data: dict | None) -> config_entries.ConfigFlowResult:
+    async def async_step_reauth(
+        self, data: dict | None
+    ) -> config_entries.ConfigFlowResult:
         """Handle the reauthentication step."""
 
         self._reauth_data = data or {}
         return await self.async_step_reauth_confirm()
 
-    async def async_step_reauth_confirm(self, user_input=None) -> config_entries.ConfigFlowResult:
+    async def async_step_reauth_confirm(
+        self, user_input=None
+    ) -> config_entries.ConfigFlowResult:
         """Handle the reauthentication confirmation step."""
 
         if user_input is None:
@@ -118,7 +126,9 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         try:
             session = async_get_clientsession(self.hass)
             async with Bakalari(server, session=session) as api:
-                credentials: Credentials = await api.first_login(username, user_input["password"])
+                credentials: Credentials = await api.first_login(
+                    username, user_input["password"]
+                )
         except Ex.InvalidLogin:
             return self.async_show_form(
                 step_id="reauth_confirm",
