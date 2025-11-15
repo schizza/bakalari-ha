@@ -60,8 +60,8 @@ Od verze 1.1.0 jsou již senzory migrovány pod `DeviceRegistry`
 
 ## Požadavky
 
-- Home Assistant `2025.9.1+`
-- PyPI: `async-bakalari-api==0.6.0`
+- Home Assistant `2025.9.4+`
+- PyPI: `async-bakalari-api==0.7.0`
 
 ## Licence
 

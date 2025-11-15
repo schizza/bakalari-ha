@@ -17,3 +17,10 @@ repos:
         entry: script/validate_version.py
         language: system
         pass_filenames: false
+  - repo: local
+    hooks:
+      - id: basedpyright
+        name: Check pyRight
+        entry: basedpyright --outputjson | script/pretty_basedpyright.py
+        language: system
+        pass_filenames: true

@@ -8,8 +8,8 @@ PLATFORMS = ["sensor", "calendar"]
 MANUFACTURER = "Bakaláři pro HomeAssistant"
 MODEL = "Bakaláři backend"
 
-LIB_VERSION: Final = "1.1.0"
-API_VERSION: Final = "0.6.0"
+LIB_VERSION: Final = "1.3.0"
+API_VERSION: Final = "0.7.0"
 CONF_CHILDREN: Final = "children"
 CONF_CREDENTIALS: Final = "credentials"
 CONF_USER_ID: Final = "user_id"
