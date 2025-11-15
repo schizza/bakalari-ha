@@ -7,6 +7,7 @@ import asyncio
 from collections.abc import Awaitable, Callable
 from datetime import date, datetime
 import logging
+from sys import api_version
 from time import time
 from typing import Any, Literal, Required, TypedDict, TypeVar
 
@@ -14,7 +15,6 @@ from async_bakalari_api import Bakalari, Komens, Marks, Timetable
 from async_bakalari_api.datastructure import Credentials
 from async_bakalari_api.exceptions import Ex
 from async_bakalari_api.komens import MessageContainer
-from async_bakalari_api.marks import SubjectsBase
 from async_bakalari_api.timetable import TimetableWeek
 from homeassistant.config_entries import SOURCE_REAUTH, ConfigEntry
 from homeassistant.core import HomeAssistant
@@ -468,7 +468,11 @@ class BakalariClient:
             )
         await self._clear_reauth_flag()
 
-    async def async_get_messages(self) -> list[MessageContainer]:
+    #
+    #  ------ API methods -------
+    #
+    @api_call(label="Messages", reauth_reason="Messages", default=[], use_lock=True)
+    async def async_get_messages(self, lib) -> list[MessageContainer]:
         """Get messages from Bakalari API."""
 
         today = datetime.today().date()
@@ -480,103 +484,52 @@ class BakalariClient:
             "[BakalariClient.async_get_messages]: Fetching messages for child_id=%s",
             self.child_id,
         )
-        data = await self._api_call(
-            label="fetching_messages",
-            reauth_reason="messages",
-            default=[],
-            use_lock=True,
-            mode="chain",
-            chain_module=Komens,
-            chain=[
-                {
-                    "method": "fetch_messages",
-                    "args": (),
-                    "kwargs": {},
-                    "follow_result": True,
-                },
-                {
-                    "method": "get_messages_by_date",
-                    "args": (start_of_school_year,),
-                    "kwargs": {"to_date": today},
-                },
-            ],
-        )
+
+        _komens = Komens(lib)
+        await _komens.fetch_messages()
+
+        data = _komens.messages.get_messages_by_date(start_of_school_year, today)
+
         _LOGGER.info("Messages for child_id %s: %s", self.child_id, data)
         return data
 
-    async def async_get_timetable_permanent(self) -> TimetableWeek:
+    @api_call(
+        label="pemanent timetable",
+        reauth_reason="permanent timetable",
+        default=TimetableWeek(),
+    )
+    async def async_get_timetable_permanent(self, lib) -> TimetableWeek:
         """Fetch permanent timetable."""
-        default: TimetableWeek = TimetableWeek()
-
         _LOGGER.debug(
             "[BakalariClient.async_get_timetable_permanent]: Fetching permanent timetable."
         )
-        return await self._api_call(
-            label="fetching permanent timetable",
-            reauth_reason="timetable_permanent",
-            default=default,
-            mode="single",
-            module=Timetable,
-            method="fetch_permanent",
-        )
+        _timetable = Timetable(lib)
+        return await _timetable.fetch_permanent()
 
+    @api_call(
+        label="async_get_timetable_actual",
+        reauth_reason="get_timetable_actual",
+        default=TimetableWeek(),
+    )
     async def async_get_timetable_actual(
         self,
+        lib,
         for_date: datetime | date | None = None,
     ) -> TimetableWeek:
         """Fetch actual timetable for a specific date."""
 
-        default: TimetableWeek = TimetableWeek()
         _LOGGER.debug(
             "[BakalariClient.async_get_timetable_actual]: Fetching actual timetable. (for_date=%s",
             for_date,
         )
-        return await self._api_call(
-            label="fetching actual timetable",
-            reauth_reason="timetable_actual",
-            default=default,
-            mode="single",
-            module=Timetable,
-            method="fetch_actual",
-            kwargs={"for_date": for_date},
-        )
 
-    async def async_get_marks(self) -> list[SubjectsBase]:
-        """Get marks from Bakalari API."""
-
-        default: list[SubjectsBase] = []
-        _LOGGER.debug("[BakalariClient.async_get_marks]: Fetching marks.")
-
-        return await self._api_call(
-            label="fetching marks",
-            reauth_reason="marks",
-            default=default,
-            mode="chain",
-            chain_module=Marks,
-            chain=[
-                {"method": "fetch_marks"},
-                {"method": "get_marks_all", "follow_result": True},
-            ],
-        )
-
-    @api_call(
-        label="get_marks", default=([], {}), reauth_reason="get_marks", use_lock=True
-    )
-    async def get_marks(self, lib) -> tuple[list[SubjectsBase], dict[str, str]]:
-        """Fetch marks from server."""
-
-        _marks = Marks(lib)
-        await _marks.fetch_marks()
-        _all_marks: list[SubjectsBase] = await _marks.get_marks_all()
-        _all_marks_summary: dict[str, str] = await _marks.get_all_marks_summary()
-
-        return (_all_marks, _all_marks_summary)
+        _timetable = Timetable(lib)
+        return await _timetable.fetch_actual(for_date)
 
     @api_call(
         label="get_marks_snapshot",
         default=({"subjects": {}, "marks_grouped": {}, "marks_flat": []}, {}),
         reauth_reason="get_marks_snapshoot",
-        use_lock=True,
     )
     async def async_get_marks_snapshot(
         self,
