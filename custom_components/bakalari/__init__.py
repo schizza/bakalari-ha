@@ -55,7 +55,7 @@ class CustomFormatter(logging.Formatter):
         return formatter.format(record)
 
 
-async def async_setup(hass: HomeAssistant) -> bool:
+async def async_setup(hass: HomeAssistant, config) -> bool:
     """Set up the Bakalari component."""
     hass.data.setdefault(DOMAIN, {})
     return True

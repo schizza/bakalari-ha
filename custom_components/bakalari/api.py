@@ -66,7 +66,9 @@ class BakalariClient:
         self._last_tokens: tuple[str, str] | None = None
 
         _LOGGER.debug(
-            "[BakalariClient.__init__] Created BakalariClient instance for child_id=%s",
+            "[class=%s module=%s] Created BakalariClient instance for child_id=%s",
+            self.__class__.__name__,
+            __name__,
             self.child_id,
         )
 
@@ -114,7 +116,12 @@ class BakalariClient:
         async def _execute() -> T:
             _lib = await self._is_lib()
             if _lib is None:
-                _LOGGER.error("Lib is not available for %s", label)
+                _LOGGER.error(
+                    "[class=%s module=%s] Lib is not available for %s",
+                    self.__class__.__name__,
+                    __name__,
+                    label,
+                )
                 await self._reset_tokens_and_client()
                 await self._start_reauth(reauth_reason or "")
                 return default
@@ -130,7 +137,9 @@ class BakalariClient:
                 Ex.InvalidRefreshToken,
             ) as err:
                 _LOGGER.error(
-                    "Authentication error while %s for child_id=%s: %s",
+                    "[class=%s module=%s] Authentication error while %s for child_id=%s: %s",
+                    self.__class__.__name__,
+                    __name__,
                     label,
                     self.child_id,
                     err,
@@ -139,7 +148,13 @@ class BakalariClient:
                 await self._start_reauth(reauth_reason or "Invalid credentials")
                 return default
             except Exception as e:
-                _LOGGER.error("Failed while %s: %s", label, e)
+                _LOGGER.error(
+                    "[class=%s module=%s] Failed while %s: %s",
+                    self.__class__.__name__,
+                    __name__,
+                    label,
+                    e,
+                )
                 _LOGGER.error(RATE_LIMIT_EXCEEDED)
                 return default
             finally:
@@ -167,7 +182,9 @@ class BakalariClient:
 
         if not child.get(CONF_ACCESS_TOKEN) and not child.get(CONF_REFRESH_TOKEN):
             _LOGGER.error(
-                "Child (child_id=%s) must have valid access and refresh tokens",
+                "[class=%s module=%s] Child (child_id=%s) must have valid access and refresh tokens",
+                self.__class__.__name__,
+                __name__,
                 child.get(CONF_USER_ID),
             )
             return False
@@ -198,7 +215,9 @@ class BakalariClient:
                         server=server, credentials=cred, session=session
                     )
                     _LOGGER.debug(
-                        "[BakalariClient._is_lib]: Bakalari library instance created for child_id=%s With parameters: %s",
+                        "[class=%s module=%s] Bakalari library instance created for child_id=%s With parameters: %s",
+                        self.__class__.__name__,
+                        __name__,
                         self.child_id,
                         redact_child_info(child),
                     )
@@ -207,13 +226,17 @@ class BakalariClient:
 
         if not self._validate_child_tokens(child):
             _LOGGER.error(
-                "Bakalari instance for child_id=%s exists, but without valid tokens provided! This should not happen!",
+                "[class=%s module=%s] Bakalari instance for child_id=%s exists, but without valid tokens provided! This should not happen!",
+                self.__class__.__name__,
+                __name__,
                 child.get(CONF_USER_ID),
             )
             return None
 
         _LOGGER.debug(
-            "[BakalariClient._is_lib]: Bakalari library instance already exists. Reusing current [child_id: %s, username: %s]",
+            "[class=%s module=%s] Bakalari library instance already exists. Reusing current [child_id: %s, username: %s]",
+            self.__class__.__name__,
+            __name__,
             self.child_id,
             self.lib.credentials.username,
         )
@@ -235,7 +258,9 @@ class BakalariClient:
         self._last_tokens = None
         self.lib = None
         _LOGGER.warning(
-            "Cleared tokens and reset client for child_id=%s; reauth required.",
+            "[class=%s module=%s] Cleared tokens and reset client for child_id=%s; reauth required.",
+            self.__class__.__name__,
+            __name__,
             self.child_id,
         )
 
@@ -264,7 +289,9 @@ class BakalariClient:
         try:
             if not await self._should_request_reauth():
                 _LOGGER.warning(
-                    "Reauthentication already requested for child_id=%s, skipping duplicate (reason: %s).",
+                    "[class=%s module=%s] Reauthentication already requested for child_id=%s, skipping duplicate (reason: %s).",
+                    self.__class__.__name__,
+                    __name__,
                     self.child_id,
                     reason,
                 )
@@ -286,7 +313,10 @@ class BakalariClient:
             )
         except Exception:  # noqa: BLE001
             _LOGGER.exception(
-                "Failed to start reauth flow for child_id=%s", self.child_id
+                "[class=%s module=%s] Failed to start reauth flow for child_id=%s",
+                self.__class__.__name__,
+                __name__,
+                self.child_id,
             )
             await self._clear_reauth_flag()
 
@@ -295,12 +325,16 @@ class BakalariClient:
 
         if not self.lib or not getattr(self.lib, "credentials", None):
             _LOGGER.error(
-                "[BakalariClient._snapshot_tokens] No library or credentials available."
+                "[class=%s module=%s]  No library or credentials available.",
+                self.__class__.__name__,
+                __name__,
             )
             return None
         cred = self.lib.credentials
         _LOGGER.debug(
-            "[BakalariClient._snapshot_tokens] Snapshot tokens for child_id=%s:",
+            "[class=%s module=%s] Snapshot tokens for child_id=%s:",
+            self.__class__.__name__,
+            __name__,
             self.child_id,
         )
         return (
@@ -341,7 +375,9 @@ class BakalariClient:
             )
             self._last_tokens = (cred.access_token or "", cred.refresh_token or "")
             _LOGGER.debug(
-                "[BakalariClient._save_tokens_if_changed]: Saved tokens on change for child_id=%s (%s)",
+                "[class=%s module=%s]: Saved tokens on change for child_id=%s (%s)",
+                self.__class__.__name__,
+                __name__,
                 self.child_id,
                 redact_child_info(child),
             )
@@ -360,7 +396,9 @@ class BakalariClient:
         start_of_school_year = datetime(year=today.year, month=10, day=1).date()
 
         _LOGGER.debug(
-            "[BakalariClient.async_get_messages]: Fetching messages for child_id=%s",
+            "[class=%s module=%s] Fetching messages for child_id=%s",
+            self.__class__.__name__,
+            __name__,
             self.child_id,
         )
 
@@ -369,7 +407,13 @@ class BakalariClient:
 
         data = _komens.messages.get_messages_by_date(start_of_school_year, today)
 
-        _LOGGER.info("Messages for child_id %s: %s", self.child_id, data)
+        _LOGGER.info(
+            "[class=%s module=%s] Messages for child_id %s: %s",
+            self.__class__.__name__,
+            __name__,
+            self.child_id,
+            data,
+        )
         return data
 
     @api_call(
@@ -380,7 +424,9 @@ class BakalariClient:
     async def async_get_timetable_permanent(self, lib) -> TimetableWeek:
         """Fetch permanent timetable."""
         _LOGGER.debug(
-            "[BakalariClient.async_get_timetable_permanent]: Fetching permanent timetable."
+            "[class=%s module=%s] Fetching permanent timetable.",
+            self.__class__.__name__,
+            __name__,
         )
         _timetable = Timetable(lib)
         return await _timetable.fetch_permanent()
@@ -398,7 +444,9 @@ class BakalariClient:
         """Fetch actual timetable for a specific date."""
 
         _LOGGER.debug(
-            "[BakalariClient.async_get_timetable_actual]: Fetching actual timetable. (for_date=%s",
+            "[class=%s module=%s]: Fetching actual timetable. (for_date=%s",
+            self.__class__.__name__,
+            __name__,
             for_date,
         )
 
@@ -437,7 +485,9 @@ class BakalariClient:
                 dt_to = datetime.combine(date_to, datetime.min.time())
 
         _LOGGER.debug(
-            "[BakalariClient.get_marks_snapshot]: Fetching marks snapshot (from=%s to=%s subject_id=%s order=%s)",
+            "[class=%s module=%s] Fetching marks snapshot (from=%s to=%s subject_id=%s order=%s)",
+            self.__class__.__name__,
+            __name__,
             df,
             dt_to,
             subject_id,

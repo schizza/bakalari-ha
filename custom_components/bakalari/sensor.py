@@ -56,7 +56,12 @@ async def async_setup_entry(
 
     # Per-subject sensors
     #
-    _LOGGER.error("Get child subjects: %s", get_child_subjects(coord, child))
+    _LOGGER.error(
+        "[class=%s module=%s] Get child subjects: %s",
+        async_setup_entry.__qualname__,
+        __name__,
+        get_child_subjects(coord, child),
+    )
 
     subjects_dict: dict[str, Any] = get_child_subjects(coord, child)
     subjects: dict[str, dict[str, Any]] = subjects_dict.get("mapping_names", {})

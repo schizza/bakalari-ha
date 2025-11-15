@@ -33,7 +33,9 @@ async def async_setup_entry(
     entities: list[BakalariTimetableCalendar] = []
     for child_id, child_info in children.items():
         _LOGGER.warning(
-            "Setting up Bakalari timetable calendar for child %s with child_info: %s",
+            "[class=%s module=%s] Setting up Bakalari timetable calendar for child %s with child_info: %s",
+            async_setup_entry.__qualname__,
+            __name__,
             child_id,
             redact_child_info(child_info),
         )
@@ -135,7 +137,9 @@ class BakalariTimetableCalendar(CalendarEntity):
             return
 
         _LOGGER.warning(
-            "[calendar.ensure_events_loaded] unique_id=%s child_id=%s",
+            "[class=%s module=%s] unique_id=%s child_id=%s",
+            self.__class__.__name__,
+            __name__,
             self._attr_unique_id,
             self._child_id,
         )
@@ -226,7 +230,12 @@ class BakalariTimetableCalendar(CalendarEntity):
                         )
                     )
         except Exception as e:
-            _LOGGER.error("Failed to build events from TimetableWeek: %s", e)
+            _LOGGER.error(
+                "[class=%s module=%s] Failed to build events from TimetableWeek: %s",
+                self.__class__.__name__,
+                __name__,
+                e,
+            )
         events.sort(key=lambda e: _ensure_utc(e.start))
         return events
 

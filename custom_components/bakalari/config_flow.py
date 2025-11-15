@@ -48,20 +48,35 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         schools_cache = await schools_storage.async_load()
 
         if schools_cache is None:
-            _LOGGER.debug("Fetching new schools from server ")
+            _LOGGER.debug(
+                "[class=%s module=%s] Fetching new schools from server ",
+                self.__class__.__name__,
+                __name__,
+            )
 
             async with Bakalari() as api:
                 schools_cache = await api.schools_list()
 
             if schools_cache is None:
-                _LOGGER.error("Schools cannot be fetched from server!")
+                _LOGGER.error(
+                    "[class=%s module=%s] Schools cannot be fetched from server!",
+                    self.__class__.__name__,
+                    __name__,
+                )
                 return False
 
             await schools_storage.async_save(schools_cache.school_list)
-            _LOGGER.debug("Schools saved to cache.")
+            _LOGGER.debug(
+                "[class=%s module=%s] Schools saved to cache.",
+                self.__class__.__name__,
+                __name__,
+            )
         else:
-            _LOGGER.debug("Schools loaded from cache.")
-
+            _LOGGER.debug(
+                "[class=%s module=%s] Schools loaded from cache.",
+                self.__class__.__name__,
+                __name__,
+            )
         return False
 
     async def async_step_user(self, user_input=None) -> config_entries.ConfigFlowResult:

@@ -55,7 +55,11 @@ def get_child_subjects(
     )
     if not subjs:
         _LOGGER.error(
-            "No subjects found for child %s. Data received: %s", child.key, subjs
+            "[class=%s module=%s] No subjects found for child %s. Data received: %s",
+            get_child_subjects.__qualname__,
+            __name__,
+            child.key,
+            subjs,
         )
         return {}
 
@@ -70,8 +74,6 @@ def get_child_subjects(
     }
 
     sensor_map: dict[str, str] = _subjects_sensors_map(coordinator, child)
-
-    _LOGGER.error("get_child_subjects: %s", friendly_names)
 
     return {
         "friendly_names": friendly_names,

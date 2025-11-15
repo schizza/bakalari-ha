@@ -71,7 +71,12 @@ class BakalariCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 server = (cr.get(CONF_SERVER) or "").strip()
                 user_id = (cr.get(CONF_USER_ID) or str(cid)).strip()
                 if not server or not user_id:
-                    _LOGGER.debug("Skipping child with missing server/user_id: %s", cr)
+                    _LOGGER.debug(
+                        "[class=%s module=%s] Skipping child with missing server/user_id: %s",
+                        self.__class__.__name__,
+                        __name__,
+                        cr,
+                    )
                     continue
 
                 ck = make_child_key(server, user_id)
@@ -106,7 +111,11 @@ class BakalariCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 )
             except Exception:  # noqa: BLE001
                 _LOGGER.exception(
-                    "Failed to normalize child record for id=%s: %s", cid, cr
+                    "[class=%s module=%s] Failed to normalize child record for id=%s: %s",
+                    self.__class__.__name__,
+                    __name__,
+                    cid,
+                    cr,
                 )
 
         self.child_list: list[Child] = child_list
@@ -133,7 +142,9 @@ class BakalariCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self._clients: dict[str, BakalariClient] = {}
 
         _LOGGER.debug(
-            "[BakalariCoordinator] Coordinator initialized for entry_id=%s with %s child(ren).",
+            "[class=%s module=%s] Coordinator initialized for entry_id=%s with %s child(ren).",
+            self.__class__.__name__,
+            __name__,
             entry.entry_id,
             len(self.child_list),
         )
@@ -255,7 +266,9 @@ class BakalariCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             date_from=dt_from, date_to=dt_to, to_dict=True, order="desc"
         )
         _LOGGER.debug(
-            "[Coordinator._fetch_child]: Snapshot: %s \n Summary: %s",
+            "[class=%s module=%s] Snapshot: %s \n Summary: %s",
+            self.__class__.__name__,
+            __name__,
             snapshot,
             all_marks_summary,
         )
@@ -288,7 +301,12 @@ class BakalariCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         try:
             items = [orjson.loads(m.as_json()) for m in data]
         except Exception:  # noqa: BLE001
-            _LOGGER.exception("Failed to parse messages for child_key=%s", child.key)
+            _LOGGER.exception(
+                "[class=%s module=%s] Failed to parse messages for child_key=%s",
+                self.__class__.__name__,
+                __name__,
+                child.key,
+            )
         return items
 
     def option_key_for_child(self, child_key: str) -> str | None:
