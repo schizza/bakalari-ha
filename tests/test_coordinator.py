@@ -8,14 +8,15 @@ from typing import Any
 from homeassistant.helpers import frame as ha_frame
 import pytest
 
-from custom_components.bakalari import coordinator as coordinator_mod
+from custom_components.bakalari import coordinator_marks as coordinator_mod
+from custom_components.bakalari.children import ChildrenIndex
 from custom_components.bakalari.const import (
     CONF_CHILDREN,
     CONF_SCAN_INTERVAL,
     CONF_SERVER,
     CONF_USER_ID,
 )
-from custom_components.bakalari.coordinator import BakalariCoordinator
+from custom_components.bakalari.coordinator_marks import BakalariMarksCoordinator
 
 # Coordinator will be imported within tests after patching frame/report_usage
 
@@ -209,7 +210,8 @@ async def test_coordinator_builds_snapshot_and_emits_events(
     # Inject our fake client into the coordinator module
     monkeypatch.setattr(coordinator_mod, "BakalariClient", FakeBakalariClient)
 
-    coord = BakalariCoordinator(hass, entry)  # pyright: ignore[]
+    children = ChildrenIndex.from_entry(entry)
+    coord = BakalariMarksCoordinator(hass, entry, children)  # pyright: ignore[]
 
     # Run update cycle
     data = await coord._async_update_data()
@@ -223,14 +225,7 @@ async def test_coordinator_builds_snapshot_and_emits_events(
     assert data["subjects_by_child"][ck]["S1"]["name"] == "Matematika"
     assert len(data["marks_flat_by_child"][ck]) == 2
 
-    # Messages parsed to dicts by coordinator
-    assert "messages_by_child" in data
-    assert len(data["messages_by_child"][ck]) == 2
-    assert data["messages_by_child"][ck][0]["id"] == "msg1"
-
-    # Timetable: coordinator requests 3 weeks (prev, current, next)
-    assert "timetable_by_child" in data
-    assert len(data["timetable_by_child"][ck]) == 3
+    # Messages and Timetable are handled by separate coordinators now; marks coordinator exposes only marks.
 
     # Events emitted for all marks on first run
     fired = hass.bus.events
@@ -293,7 +288,8 @@ async def test_coordinator_event_diff_only_new(monkeypatch: pytest.MonkeyPatch):
     # Inject our fake client into the coordinator module
     monkeypatch.setattr(coordinator_mod, "BakalariClient", FakeBakalariClient)
 
-    coord = BakalariCoordinator(hass, entry)  # pyright: ignore[]
+    children = ChildrenIndex.from_entry(entry)
+    coord = BakalariMarksCoordinator(hass, entry, children)  # pyright: ignore[]
 
     # First update -> one event
     data1 = await coord._async_update_data()
@@ -339,7 +335,8 @@ async def test_coordinator_child_mapping_and_keys(monkeypatch: pytest.MonkeyPatc
 
     monkeypatch.setattr(coordinator_mod, "BakalariClient", FakeBakalariClient)
 
-    coord = BakalariCoordinator(hass, entry)  # pyright: ignore[]
+    children = ChildrenIndex.from_entry(entry)
+    coord = BakalariMarksCoordinator(hass, entry, children)  # pyright: ignore[]
 
     # Two children discovered
     assert len(coord.child_list) == 2

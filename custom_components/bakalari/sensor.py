@@ -11,7 +11,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import CONF_CHILDREN, CONF_SERVER, CONF_USER_ID, DOMAIN
-from .coordinator import BakalariCoordinator
+from .coordinator_marks import BakalariMarksCoordinator
 from .sensor_helpers import (
     build_subjects_listener,
     get_child_subjects,
@@ -39,13 +39,16 @@ async def async_setup_entry(
 ):
     """Set up Bakalari sensors from a config entry."""
     data = hass.data.get(DOMAIN, {}).get(entry.entry_id, {})
-    coord: BakalariCoordinator = data["coordinator"]
+    children = data["children"].children
+    coord_marks: BakalariMarksCoordinator = data["marks"]
+    coord_msgs = data.get("messages")
+    coord_tt = data.get("timetable")
 
     entities = []
-    data_now = coord.data or {}
+    data_now = coord_marks.data or {}
 
     # Create sensors for children.
-    for child in coord.child_list:
+    for child in children:
         # Base senors
         _LOGGER.debug(
             "[class=%s module=%s] Creating base sensors for child %s",
@@ -53,14 +56,16 @@ async def async_setup_entry(
             __name__,
             child,
         )
-        entities.append(BakalariNewMarksSensor(coord, child))
-        entities.append(BakalariLastMarkSensor(coord, child))
-        entities.append(BakalariMessagesSensor(coord, child))
-        entities.append(BakalariTimetableSensor(coord, child))
-        entities.append(BakalariIndexHelperSensor(coord, child))
+        entities.append(BakalariNewMarksSensor(coord_marks, child))
+        entities.append(BakalariLastMarkSensor(coord_marks, child))
+        if coord_msgs is not None:
+            entities.append(BakalariMessagesSensor(coord_msgs, child))
+        if coord_tt is not None:
+            entities.append(BakalariTimetableSensor(coord_tt, child))
+        entities.append(BakalariIndexHelperSensor(coord_marks, child))
 
         # Per-subject sensors
-        subjects_dict: dict[str, Any] = get_child_subjects(coord, child)
+        subjects_dict: dict[str, Any] = get_child_subjects(coord_marks, child)
         _LOGGER.debug(
             "[class=%s module=%s] Setting up subjects for child: %s: %s",
             async_setup_entry.__qualname__,
@@ -76,7 +81,7 @@ async def async_setup_entry(
 
         entities.extend(
             BakalariSubjectMarksSensor(
-                coord, child, subject_sensor["id"], subject_sensor["abbr"]
+                coord_marks, child, subject_sensor["id"], subject_sensor["abbr"]
             )
             for subject_sensor in subj_sensors
         )
@@ -84,9 +89,9 @@ async def async_setup_entry(
     async_add_entities(entities, update_before_add=True)
 
     # Dynamic per-subject sensors (no reload required)
-    created_subjects = seed_created_subjects_from_data(coord, data_now)
-    coord.async_add_listener(
-        build_subjects_listener(coord, created_subjects, async_add_entities)
+    created_subjects = seed_created_subjects_from_data(coord_marks, data_now)
+    coord_marks.async_add_listener(
+        build_subjects_listener(coord_marks, created_subjects, async_add_entities)
     )
 
 

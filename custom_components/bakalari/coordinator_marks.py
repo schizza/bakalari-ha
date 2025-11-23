@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
 from datetime import date, datetime, timedelta
 import logging
 from random import random
@@ -15,110 +14,33 @@ from homeassistant.util import dt
 import orjson
 
 from .api import BakalariClient
+from .children import Child, ChildrenIndex
 from .const import (
     API_VERSION,
-    CONF_ACCESS_TOKEN,
-    CONF_CHILDREN,
-    CONF_REFRESH_TOKEN,
     CONF_SCAN_INTERVAL,
     CONF_SCHOOL_YEAR_START_DAY,
     CONF_SCHOOL_YEAR_START_MONTH,
-    CONF_SERVER,
-    CONF_USER_ID,
-    CONF_USERNAME,
     DEFAULT_SCAN_INTERVAL,
     DOMAIN,
     LIB_VERSION,
-    ChildRecord,
-    ChildrenMap,
 )
-from .utils import ensure_children_dict, make_child_key, school_year_bounds
+from .utils import school_year_bounds
 
 _LOGGER = logging.getLogger(__name__)
 
 
-@dataclass(slots=True, frozen=True)
-class Child:
-    """Normalized child descriptor used by the coordinator."""
-
-    # Composite key, stable across servers: "<server>|<user_id>"
-    key: str
-    user_id: str
-    server: str
-    display_name: str  # e.g., "Jana Nováková (ZŠ X)"
-    short_name: str
-
-
-class BakalariCoordinator(DataUpdateCoordinator[dict[str, Any]]):
+class BakalariMarksCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     """Multi-child coordinator with per-child diff cache for new marks."""
 
-    def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
+    def __init__(
+        self, hass: HomeAssistant, entry: ConfigEntry, children_index: ChildrenIndex
+    ) -> None:
         """Initialize the coordinator."""
 
         self.hass = hass
         self.entry = entry
-
-        # Normalize children map from options and build composite-keyed map
-        children_raw: ChildrenMap = ensure_children_dict(
-            entry.options.get(CONF_CHILDREN, {})
-        )
-        self.children: ChildrenMap = {}
-        self._option_key_by_child_key: dict[str, str] = {}
-        child_list: list[Child] = []
-
-        for cid, cr in children_raw.items():
-            try:
-                server = (cr.get(CONF_SERVER) or "").strip()
-                user_id = (cr.get(CONF_USER_ID) or str(cid)).strip()
-                if not server or not user_id:
-                    _LOGGER.warning(
-                        "[class=%s module=%s] Skipping child with missing server/user_id: %s",
-                        self.__class__.__name__,
-                        __name__,
-                        cr,
-                    )
-                    continue
-
-                ck = make_child_key(server, user_id)
-                self._option_key_by_child_key[ck] = str(cid)
-
-                # Store by composite key to ensure uniqueness across servers
-                tmp_cr: ChildRecord = ChildRecord(
-                    user_id=user_id,
-                    username=str(cr.get(CONF_USERNAME, "") or ""),
-                    name=str(cr.get("name", "") or ""),
-                    surname=str(cr.get("surname", "") or ""),
-                    school=str(cr.get("school", "") or ""),
-                    server=server,
-                )
-                at = cr.get(CONF_ACCESS_TOKEN)
-                if at:
-                    tmp_cr[CONF_ACCESS_TOKEN] = at
-                rt = cr.get(CONF_REFRESH_TOKEN)
-                if rt:
-                    tmp_cr[CONF_REFRESH_TOKEN] = rt
-                self.children[ck] = tmp_cr
-
-                display_name = f"{cr.get('name', '')} {cr.get('surname', '')} ({cr.get('school', '')})".strip()
-                child_list.append(
-                    Child(
-                        key=ck,
-                        user_id=user_id,
-                        server=server,
-                        display_name=display_name,
-                        short_name=cr.get("name"),
-                    )
-                )
-            except Exception:  # noqa: BLE001
-                _LOGGER.exception(
-                    "[class=%s module=%s] Failed to normalize child record for id=%s: %s",
-                    self.__class__.__name__,
-                    __name__,
-                    cid,
-                    cr,
-                )
-
-        self.child_list: list[Child] = child_list
+        self.children_index = children_index
+        self.child_list = list(children_index.children)
 
         # Expose library/API version to entities
         self.api_version: str = f"API: {API_VERSION} Library: {LIB_VERSION}"
@@ -170,7 +92,7 @@ class BakalariCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     # ---------- Update lifecycle ----------
 
     async def _async_update_data(self) -> dict[str, Any]:
-        """Fetch and prepare marks, messages and timetable for all children."""
+        """Fetch and prepare marks for all children."""
         try:
             start_year, end_year = school_year_bounds(
                 dt.now().date(),
@@ -185,9 +107,6 @@ class BakalariCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
             # removed: unused marks_by_child variable
 
-            messages_by_child: dict[str, list[dict[str, Any]]] = {}
-            timetable_by_child: dict[str, list[Any]] = {}
-
             # Sequential fetch (can be parallelized if needed)
             for ch in self.child_list:
                 raw = await self._fetch_child(ch, start_year, end_year)
@@ -197,13 +116,6 @@ class BakalariCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 marks_by_child_subject[ch.key] = snap.get("marks_grouped", {})
                 marks_flat_by_child[ch.key] = snap.get("marks_flat", [])
                 summary[ch.key] = raw.get("summary", {})
-
-                # Messages
-                messages = self._parse_messages(ch, raw)
-                messages_by_child[ch.key] = messages
-
-                # Timetable - keep raw weeks list (as returned by client)
-                timetable_by_child[ch.key] = raw.get("timetable") or []
 
         except Exception as err:  # noqa: BLE001
             raise UpdateFailed(str(err)) from err
@@ -231,8 +143,6 @@ class BakalariCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                     "start": start_year.isoformat(),
                     "end_exclusive": end_year.isoformat(),
                 },
-                "messages_by_child": messages_by_child,
-                "timetable_by_child": timetable_by_child,
                 "last_sync_ok": True,
                 "summary": summary,
             }
@@ -243,7 +153,7 @@ class BakalariCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         """Fetch raw payloads (marks, messages, timetable) for a specific child via BakalariClient."""
 
         # Map composite key to original options key (usually user_id)
-        opt_key = self._option_key_by_child_key.get(child.key, child.user_id)
+        opt_key = self.children_index.option_key_for_child(child.key) or child.user_id
 
         client = self._clients.get(child.key)
         if client is None:
@@ -273,22 +183,9 @@ class BakalariCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             all_marks_summary,
         )
 
-        # Messages
-        messages = await client.async_get_messages()
-
-        # Timetable: current, next and previous week
-        today = dt.now().date()
-        dates = [today, today + timedelta(weeks=1), today - timedelta(weeks=1)]
-        weeks: list[Any] = []
-        for d in dates:
-            w = await client.async_get_timetable_actual(d)
-            weeks.append(w)
-
         return {
             "snapshot": snapshot,
             "summary": all_marks_summary,
-            "messages": messages,
-            "timetable": weeks,
             "_range": (date_from, date_to),
         }
 
@@ -311,12 +208,15 @@ class BakalariCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
     def option_key_for_child(self, child_key: str) -> str | None:
         """Expose original options key (typically user_id) for a given composite child key."""
-        return self._option_key_by_child_key.get(child_key)
+        return self.children_index.option_key_for_child(child_key)
 
     @property
     def option_key_by_child_key(self) -> dict[str, str]:
         """Expose a copy of the mapping 'composite child key' -> 'options key' for migrations."""
-        return dict(self._option_key_by_child_key)
+        return {
+            ch.key: (self.children_index.option_key_for_child(ch.key) or "")
+            for ch in self.child_list
+        }
 
     def child_by_key(self, ck: str) -> Child:
         """Return Child object by composite key or raise KeyError."""

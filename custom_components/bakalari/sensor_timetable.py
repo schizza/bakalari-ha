@@ -6,11 +6,12 @@ from typing import Any
 
 from homeassistant.components.sensor import SensorEntity
 
-from .coordinator import BakalariCoordinator, Child
+from .children import Child
+from .const import DOMAIN
 from .entity import BakalariEntity
 
 
-def _get_timetable_for_child(coord: BakalariCoordinator, child_key: str) -> list[Any]:
+def _get_timetable_for_child(coord: Any, child_key: str) -> list[Any]:
     """Get timetable list (weeks) for the child from coordinator data."""
     data = coord.data or {}
     by_child = data.get("timetable_by_child") or {}
@@ -24,16 +25,30 @@ class BakalariTimetableSensor(BakalariEntity, SensorEntity):
     _attr_icon = "mdi:calendar-clock"
     _attr_has_entity_name = True
 
-    def __init__(self, coordinator: BakalariCoordinator, child: Child) -> None:
+    def __init__(self, coordinator: Any, child: Child) -> None:
         """Initialize the sensor for a specific child."""
         super().__init__(coordinator, child)
         self._attr_unique_id = f"{coordinator.entry.entry_id}:{child.key}:timetable"
         self._attr_name = f"Rozvrh - {child.short_name}"
 
+    async def async_added_to_hass(self) -> None:
+        """Initialize the sensor for a specific child."""
+        await super().async_added_to_hass()
+        tc = self._get_timetable_coordinator()
+        if tc is not None:
+            self.async_on_remove(tc.async_add_listener(self._handle_coordinator_update))
+
+    def _get_timetable_coordinator(self):
+        try:
+            return self.hass.data[DOMAIN]["timetable"]
+        except Exception:
+            return None
+
     @property
     def native_value(self) -> int:
         """Return number of weeks cached for the child's timetable."""
-        items = _get_timetable_for_child(self.coordinator, self.child.key)
+        coord = self._get_timetable_coordinator() or self.coordinator
+        items = _get_timetable_for_child(coord, self.child.key)
         try:
             return len(items)
         except Exception:
@@ -42,7 +57,8 @@ class BakalariTimetableSensor(BakalariEntity, SensorEntity):
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
         """Return the timetable as attributes for advanced use."""
-        items = _get_timetable_for_child(self.coordinator, self.child.key)
+        coord = self._get_timetable_coordinator() or self.coordinator
+        items = _get_timetable_for_child(coord, self.child.key)
         return {
             "child_key": self.child.key,
             "timetable": items,
