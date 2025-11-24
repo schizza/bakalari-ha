@@ -3,14 +3,13 @@
 from __future__ import annotations
 
 import logging
-import re
 from typing import Any
 
 from homeassistant import config_entries
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .const import CONF_CHILDREN, CONF_SERVER, CONF_USER_ID, DOMAIN
+from .const import DOMAIN
 from .coordinator_marks import BakalariMarksCoordinator
 from .sensor_helpers import (
     build_subjects_listener,
@@ -25,7 +24,6 @@ from .sensor_marks import (
 )
 from .sensor_messages import BakalariMessagesSensor
 from .sensor_timetable import BakalariTimetableSensor
-from .utils import ensure_children_dict, make_child_key
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -93,35 +91,3 @@ async def async_setup_entry(
     coord_marks.async_add_listener(
         build_subjects_listener(coord_marks, created_subjects, async_add_entities)
     )
-
-
-async def async_migrate_entity_entry(
-    hass: HomeAssistant,
-    config_entry: config_entries.ConfigEntry,
-    entity_entry,
-):
-    """Migrate unique_id from 'bakalari_<child_id>_(messages|timetable)' to '<entry_id>:<child_key>:(messages|timetable)'."""
-    uid = entity_entry.unique_id or ""
-    m = re.fullmatch(r"bakalari_(?P<cid>.+)_(?P<what>messages|timetable)", uid)
-    if not m:
-        return None
-
-    opt_key = m.group("cid")
-    what = m.group("what")
-
-    # Build composite child key from options
-    children = ensure_children_dict(config_entry.options.get(CONF_CHILDREN, {}))
-    child_key = None
-    for cid, cr in children.items():
-        user_id = str(cr.get(CONF_USER_ID) or cid)
-        if str(cid) == opt_key or user_id == opt_key:
-            server = (cr.get(CONF_SERVER) or "").strip()
-            if server and user_id:
-                child_key = make_child_key(server, user_id)
-                break
-
-    if not child_key:
-        return None
-
-    new_unique_id = f"{config_entry.entry_id}:{child_key}:{what}"
-    return {"new_unique_id": new_unique_id}

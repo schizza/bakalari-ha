@@ -11,7 +11,6 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.util import dt
-import orjson
 
 from .api import BakalariClient
 from .children import Child, ChildrenIndex
@@ -30,13 +29,12 @@ _LOGGER = logging.getLogger(__name__)
 
 
 class BakalariMarksCoordinator(DataUpdateCoordinator[dict[str, Any]]):
-    """Multi-child coordinator with per-child diff cache for new marks."""
+    """Coordinator for Bakaláři marks – minimal data model for sensors."""
 
     def __init__(
         self, hass: HomeAssistant, entry: ConfigEntry, children_index: ChildrenIndex
     ) -> None:
         """Initialize the coordinator."""
-
         self.hass = hass
         self.entry = entry
         self.children_index = children_index
@@ -64,16 +62,12 @@ class BakalariMarksCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self._clients: dict[str, BakalariClient] = {}
 
         _LOGGER.debug(
-            "[class=%s module=%s] Coordinator initialized for entry_id=%s with %s child(ren).",
+            "[class=%s module=%s] Marks coordinator ready (entry_id=%s, children=%d)",
             self.__class__.__name__,
             __name__,
             entry.entry_id,
             len(self.child_list),
         )
-
-    def child_api(self, child_key: str) -> BakalariClient | None:
-        """Get the BakalariClient for a child."""
-        return self._clients.get(child_key, None)
 
     # ---------- Public API for services / WebSocket ----------
 
@@ -86,7 +80,9 @@ class BakalariMarksCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     def select_marks(self, child_key: str | None, limit: int) -> list[dict[str, Any]]:
         """Return last N marks for a child (already parsed/flattened)."""
         ck = child_key or (self.child_list[0].key if self.child_list else "")
-        items: list[dict[str, Any]] = self.data.get("marks_by_child", {}).get(ck, [])
+        items: list[dict[str, Any]] = (self.data or {}).get("marks_by_child", {}).get(
+            ck, []
+        ) or []
         return items[: max(0, limit or 0)]
 
     # ---------- Update lifecycle ----------
@@ -101,11 +97,8 @@ class BakalariMarksCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             )
 
             subjects_by_child: dict[str, dict[str, dict[str, Any]]] = {}
-            marks_by_child_subject: dict[str, dict[str, list[dict[str, Any]]]] = {}
             marks_flat_by_child: dict[str, list[dict[str, Any]]] = {}
             summary: dict[str, dict[str, str]] = {}
-
-            # removed: unused marks_by_child variable
 
             # Sequential fetch (can be parallelized if needed)
             for ch in self.child_list:
@@ -113,14 +106,13 @@ class BakalariMarksCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
                 snap = raw.get("snapshot") or {}
                 subjects_by_child[ch.key] = snap.get("subjects", {})
-                marks_by_child_subject[ch.key] = snap.get("marks_grouped", {})
                 marks_flat_by_child[ch.key] = snap.get("marks_flat", [])
                 summary[ch.key] = raw.get("summary", {})
 
         except Exception as err:  # noqa: BLE001
             raise UpdateFailed(str(err)) from err
         else:
-            # Compute is_new per mark (before firing events) for backward compatibility
+            # Compute is_new per mark (before firing events)
             annotated_marks_by_child: dict[str, list[dict[str, Any]]] = {}
             for ck, items in marks_flat_by_child.items():
                 annotated: list[dict[str, Any]] = []
@@ -135,7 +127,6 @@ class BakalariMarksCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
             return {
                 "subjects_by_child": subjects_by_child,
-                "marks_by_child_subject": marks_by_child_subject,
                 # Backward-compatible flat marks list expected by existing sensors
                 "marks_by_child": annotated_marks_by_child,
                 "marks_flat_by_child": marks_flat_by_child,
@@ -150,7 +141,7 @@ class BakalariMarksCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     async def _fetch_child(
         self, child: Child, date_from: datetime | date, date_to: datetime | date
     ) -> dict[str, Any]:
-        """Fetch raw payloads (marks, messages, timetable) for a specific child via BakalariClient."""
+        """Fetch raw marks for a specific child via BakalariClient."""
 
         # Map composite key to original options key (usually user_id)
         opt_key = self.children_index.option_key_for_child(child.key) or child.user_id
@@ -176,54 +167,18 @@ class BakalariMarksCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             date_from=dt_from, date_to=dt_to, to_dict=True, order="desc"
         )
         _LOGGER.debug(
-            "[class=%s module=%s] Snapshot: %s \n Summary: %s",
+            "[class=%s module=%s] Marks fetched for child=%s (subjects=%d, marks=%d)",
             self.__class__.__name__,
             __name__,
-            snapshot,
-            all_marks_summary,
+            child.key,
+            len(snapshot.get("subjects", {})),
+            len(snapshot.get("marks_flat", [])),
         )
 
         return {
             "snapshot": snapshot,
             "summary": all_marks_summary,
-            "_range": (date_from, date_to),
         }
-
-    def _parse_messages(
-        self, child: Child, raw: dict[str, Any]
-    ) -> list[dict[str, Any]]:
-        """Normalize raw messages into a list of dicts."""
-        data = raw.get("messages") or []
-        items: list[dict[str, Any]] = []
-        try:
-            items = [orjson.loads(m.as_json()) for m in data]
-        except Exception:  # noqa: BLE001
-            _LOGGER.exception(
-                "[class=%s module=%s] Failed to parse messages for child_key=%s",
-                self.__class__.__name__,
-                __name__,
-                child.key,
-            )
-        return items
-
-    def option_key_for_child(self, child_key: str) -> str | None:
-        """Expose original options key (typically user_id) for a given composite child key."""
-        return self.children_index.option_key_for_child(child_key)
-
-    @property
-    def option_key_by_child_key(self) -> dict[str, str]:
-        """Expose a copy of the mapping 'composite child key' -> 'options key' for migrations."""
-        return {
-            ch.key: (self.children_index.option_key_for_child(ch.key) or "")
-            for ch in self.child_list
-        }
-
-    def child_by_key(self, ck: str) -> Child:
-        """Return Child object by composite key or raise KeyError."""
-        for ch in self.child_list:
-            if ch.key == ck:
-                return ch
-        raise KeyError(ck)
 
     # ---------- Event helpers ----------
 

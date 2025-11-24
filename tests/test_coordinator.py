@@ -218,7 +218,7 @@ async def test_coordinator_builds_snapshot_and_emits_events(
 
     # Snapshot data present and correctly mapped per child
     assert "subjects_by_child" in data
-    assert "marks_by_child_subject" in data
+    assert "marks_by_child" in data
     assert "marks_flat_by_child" in data
     assert len(coord.child_list) == 1
     ck = coord.child_list[0].key
@@ -343,8 +343,3 @@ async def test_coordinator_child_mapping_and_keys(monkeypatch: pytest.MonkeyPatc
     keys = {c.key for c in coord.child_list}
     assert "servA|userA" in keys
     assert "servB|userB" in keys
-
-    # Mapping option key -> composite key works
-    mapping = coord.option_key_by_child_key
-    assert mapping["servA|userA"] == "alpha"
-    assert mapping["servB|userB"] == "beta"
