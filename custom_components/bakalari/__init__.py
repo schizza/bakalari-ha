@@ -12,8 +12,11 @@ from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers import device_registry as dr
 import voluptuous as vol
 
+from .children import ChildrenIndex
 from .const import DOMAIN, MANUFACTURER, MODEL, PLATFORMS
-from .coordinator import BakalariCoordinator
+from .coordinator_marks import BakalariMarksCoordinator
+from .coordinator_messages import BakalariMessagesCoordinator
+from .coordinator_timetable import BakalariTimetableCoordinator
 from .utils import device_ident
 
 _LOGGER = logging.getLogger(__name__)
@@ -87,34 +90,65 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         logging.getLogger("custom_components.bakalari"), CustomFormatter()
     )
 
-    coord = BakalariCoordinator(hass, entry)
+    children = ChildrenIndex.from_entry(entry)
+
+    coord_marks = BakalariMarksCoordinator(hass, entry, children)
+    coord_msgs = BakalariMessagesCoordinator(hass, entry, children)
+    coord_tt = BakalariTimetableCoordinator(hass, entry, children)
 
     hass.data.setdefault(DOMAIN, {})
-    hass.data[DOMAIN][entry.entry_id] = {"coordinator": coord}
-    await coord.async_config_entry_first_refresh()
+    hass.data[DOMAIN][entry.entry_id] = {
+        "children": children,
+        "marks": coord_marks,
+        "messages": coord_msgs,
+        "timetable": coord_tt,
+    }
+
+    await coord_marks.async_config_entry_first_refresh()
+    await coord_msgs.async_config_entry_first_refresh()
+    await coord_tt.async_config_entry_first_refresh()
 
     # Device Registry: one device per child
     devreg = dr.async_get(hass)
-    for child in coord.child_list:
+    for child in children.children:
         devreg.async_get_or_create(
             config_entry_id=entry.entry_id,
             identifiers={device_ident(entry.entry_id, child.key)},
             manufacturer=MANUFACTURER,
             name=f"Bakaláři – {child.display_name}",
             model=MODEL,
-            sw_version=coord.api_version,
+            sw_version=coord_marks.api_version,
         )
 
     # Services
     async def _srv_mark_seen(call) -> None:
-        await coord.async_mark_seen(call.data["mark_id"], call.data.get("child_key"))
-        await coord.async_request_refresh()
+        await coord_marks.async_mark_seen(
+            call.data["mark_id"], call.data.get("child_key")
+        )
+        await coord_marks.async_request_refresh()
 
     async def _srv_refresh(call) -> None:  # noqa: ARG001
-        await coord.async_refresh()
+        await coord_marks.async_refresh()
+
+    async def _srv_mark_message_seen(call) -> None:
+        ceid = entry.entry_id
+        coord_msgs = hass.data[DOMAIN][ceid]["messages"]
+        await coord_msgs.async_mark_message_seen(
+            call.data["message_id"], call.data.get("child_key")
+        )
+        await coord_msgs.async_request_refresh()
+
+    async def _srv_refresh_messages(call) -> None:  # noqa: ARG001
+        await hass.data[DOMAIN][entry.entry_id]["messages"].async_refresh()
+
+    async def _srv_refresh_timetable(call) -> None:  # noqa: ARG001
+        await hass.data[DOMAIN][entry.entry_id]["timetable"].async_refresh()
 
     hass.services.async_register(DOMAIN, "mark_as_seen", _srv_mark_seen)
     hass.services.async_register(DOMAIN, "refresh", _srv_refresh)
+    hass.services.async_register(DOMAIN, "mark_message_as_seen", _srv_mark_message_seen)
+    hass.services.async_register(DOMAIN, "refresh_messages", _srv_refresh_messages)
+    hass.services.async_register(DOMAIN, "refresh_timetable", _srv_refresh_timetable)
 
     # WebSocket API
     @websocket_api.websocket_command(  # type: ignore[attr-defined]
@@ -130,10 +164,46 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         ceid = msg["config_entry_id"]
         limit = msg.get("limit", 50)
         child_key = msg.get("child_key")
-        data = hass.data[DOMAIN][ceid]["coordinator"].select_marks(child_key, limit)
+        data = hass.data[DOMAIN][ceid]["marks"].select_marks(child_key, limit)
         connection.send_result(msg["id"], {"items": data})
 
     websocket_api.async_register_command(hass, ws_get_marks)
+
+    @websocket_api.websocket_command(  # type: ignore[attr-defined]
+        {
+            vol.Required("type"): f"{DOMAIN}/get_messages",
+            vol.Required("config_entry_id"): str,
+            vol.Optional("child_key"): str,
+            vol.Optional("limit", default=50): int,
+        }
+    )
+    @websocket_api.async_response  # type: ignore[attr-defined]
+    async def ws_get_messages(hass_, connection, msg):  # noqa: ANN001
+        ceid = msg["config_entry_id"]
+        limit = msg.get("limit", 50)
+        child_key = msg.get("child_key")
+        data = hass.data[DOMAIN][ceid]["messages"].select_messages(child_key, limit)
+        connection.send_result(msg["id"], {"items": data})
+
+    websocket_api.async_register_command(hass, ws_get_messages)
+
+    @websocket_api.websocket_command(  # type: ignore[attr-defined]
+        {
+            vol.Required("type"): f"{DOMAIN}/get_timetable",
+            vol.Required("config_entry_id"): str,
+            vol.Optional("child_key"): str,
+            vol.Optional("limit", default=3): int,
+        }
+    )
+    @websocket_api.async_response  # type: ignore[attr-defined]
+    async def ws_get_timetable(hass_, connection, msg):  # noqa: ANN001
+        ceid = msg["config_entry_id"]
+        limit = msg.get("limit", 3)
+        child_key = msg.get("child_key")
+        data = hass.data[DOMAIN][ceid]["timetable"].select_timetable(child_key, limit)
+        connection.send_result(msg["id"], {"items": data})
+
+    websocket_api.async_register_command(hass, ws_get_timetable)
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     entry.async_on_unload(entry.add_update_listener(_async_update_listener))

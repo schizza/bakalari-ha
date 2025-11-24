@@ -7,7 +7,7 @@ from typing import Any
 
 from homeassistant.components.sensor import SensorEntity
 
-from .coordinator import BakalariCoordinator, Child
+from .coordinator_marks import BakalariMarksCoordinator, Child
 from .entity import BakalariEntity
 from .sensor_helpers import (
     _get_items_for_child,
@@ -26,9 +26,10 @@ class BakalariNewMarksSensor(BakalariEntity, SensorEntity):
     _attr_translation_key = "new_marks"
     _attr_has_entity_name = True
 
-    def __init__(self, coordinator: BakalariCoordinator, child: Child) -> None:
+    def __init__(self, coordinator: BakalariMarksCoordinator, child: Child) -> None:
         """Initialize the sensor."""
         super().__init__(coordinator, child)
+        self.coordinator = coordinator
         self._attr_unique_id = f"{coordinator.entry.entry_id}:{child.key}:new_marks"
         self._attr_name = f"Nové známky - {child.short_name}"
 
@@ -58,9 +59,10 @@ class BakalariLastMarkSensor(BakalariEntity, SensorEntity):
     _attr_translation_key = "last_mark"
     _attr_has_entity_name = True
 
-    def __init__(self, coordinator: BakalariCoordinator, child: Child) -> None:
+    def __init__(self, coordinator: BakalariMarksCoordinator, child: Child) -> None:
         """Initialize the sensor."""
         super().__init__(coordinator, child)
+        self.coordinator = coordinator
         self._attr_unique_id = f"{coordinator.entry.entry_id}:{child.key}:last_mark"
         self._attr_name = f"Poslední známka - {child.short_name}"
 
@@ -96,7 +98,7 @@ class BakalariSubjectMarksSensor(BakalariEntity, SensorEntity):
 
     def __init__(
         self,
-        coordinator: BakalariCoordinator,
+        coordinator: BakalariMarksCoordinator,
         child: Child,
         subject_id: str,
         subject_abbr: str,
@@ -104,6 +106,7 @@ class BakalariSubjectMarksSensor(BakalariEntity, SensorEntity):
     ) -> None:
         """Initialize the sensor for a specific subject."""
         super().__init__(coordinator, child)
+        self.coordinator = coordinator
         self._subject_key = subject_id
         self._subject_abbr: str = subject_abbr
         display = (label or self._subject_abbr).strip()
@@ -157,9 +160,10 @@ class BakalariIndexHelperSensor(BakalariEntity, SensorEntity):
     _attr_translation_key = "index_helper"
     _attr_has_entity_name = True
 
-    def __init__(self, coordinator: BakalariCoordinator, child: Child) -> None:
+    def __init__(self, coordinator: BakalariMarksCoordinator, child: Child) -> None:
         """Initialize the sensor."""
         super().__init__(coordinator, child)
+        self.coordinator = coordinator
         self._attr_unique_id = f"{coordinator.entry.entry_id}:{child.key}:all_marks"
         self._attr_name = f"Všechny známky - {child.short_name}"
 

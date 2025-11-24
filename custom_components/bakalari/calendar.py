@@ -1,9 +1,9 @@
 """Calendar platform for Bakalari - timetable per child (coordinator-backed).
 
-Refactored to use BakalariCoordinator instead of direct API client:
-- No direct HTTP/API calls from the entity.
-- All timetable data are sourced from the coordinator's shared data snapshot.
-- Events are rebuilt whenever the coordinator updates.
+Refactored to use:
+- Shared ChildrenIndex (single source of truth for children)
+- Timetable-specific DataUpdateCoordinator (no direct API calls from entities)
+- Events are rebuilt whenever the timetable coordinator updates
 """
 
 from __future__ import annotations
@@ -19,8 +19,9 @@ from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.util import dt as dt_util
 
+from .children import Child, ChildrenIndex
 from .const import DOMAIN
-from .coordinator import BakalariCoordinator, Child
+from .coordinator_timetable import BakalariTimetableCoordinator
 from .entity import BakalariEntity
 
 _LOGGER = logging.getLogger(__name__)
@@ -31,13 +32,14 @@ async def async_setup_entry(
     entry: config_entries.ConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
-    """Set up Bakalari calendar entities from a config entry via coordinator."""
-
+    """Set up Bakalari calendar entities from a config entry using timetable coordinator."""
     data = hass.data.get(DOMAIN, {}).get(entry.entry_id, {})
-    coord: BakalariCoordinator = data["coordinator"]
+    coord: BakalariTimetableCoordinator = data["timetable"]
+    children_index: ChildrenIndex = data["children"]
+    child_list: list[Child] = list(children_index.children)
 
     entities: list[BakalariTimetableCalendar] = [
-        BakalariTimetableCalendar(coord, child) for child in coord.child_list
+        BakalariTimetableCalendar(coord, child) for child in child_list
     ]
 
     async_add_entities(entities)
@@ -49,7 +51,7 @@ class BakalariTimetableCalendar(BakalariEntity, CalendarEntity):
     _attr_icon = "mdi:calendar-school"
     _attr_translation_key = "timetable"
 
-    def __init__(self, coordinator: BakalariCoordinator, child: Child) -> None:
+    def __init__(self, coordinator: BakalariTimetableCoordinator, child: Child) -> None:
         """Initialize the calendar entity."""
         super().__init__(coordinator, child)
 
@@ -97,7 +99,6 @@ class BakalariTimetableCalendar(BakalariEntity, CalendarEntity):
 
     async def async_update(self) -> None:
         """Manual update trigger (rare). Request coordinator refresh."""
-        # We do NOT fetch directly; rely on coordinator refresh.
         await self.coordinator.async_request_refresh()
 
     async def async_added_to_hass(self) -> None:
@@ -120,7 +121,6 @@ class BakalariTimetableCalendar(BakalariEntity, CalendarEntity):
 
     def _ensure_events_current(self) -> None:
         """Verify cached events align with current coordinator timetable snapshot."""
-        # We derive a simple version number from object ids & lengths to detect change cheaply.
         weeks = self._get_child_weeks()
         version = _weeks_version_marker(weeks)
         if version != self._last_source_version:
@@ -183,7 +183,7 @@ class BakalariTimetableCalendar(BakalariEntity, CalendarEntity):
     # ------------- Data extraction helpers -------------
 
     def _get_child_weeks(self) -> list[Any]:
-        """Fetch raw timetable weeks list for the child from coordinator data."""
+        """Fetch raw timetable weeks list for the child from timetable coordinator data."""
         data = self.coordinator.data or {}
         weeks = data.get("timetable_by_child", {}).get(self.child.key, [])
         if not isinstance(weeks, list):
