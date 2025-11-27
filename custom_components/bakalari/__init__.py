@@ -144,11 +144,26 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     async def _srv_refresh_timetable(call) -> None:  # noqa: ARG001
         await hass.data[DOMAIN][entry.entry_id]["timetable"].async_refresh()
 
+    async def _srv_mark_message_as_read(call) -> None:
+        """Mark message as read."""
+
+        _LOGGER.debug("[service call] Called _srv_mark_message_as_read")
+
+        coord_msgs = hass.data[DOMAIN][entry.entry_id]["messages"]
+
+        await coord_msgs.async_mark_message_as_read(
+            call.data["message_id"], call.data.get("child_key")
+        )
+        # await coord_msgs.async_request_refresh()
+
     hass.services.async_register(DOMAIN, "mark_as_seen", _srv_mark_seen)
     hass.services.async_register(DOMAIN, "refresh", _srv_refresh)
     hass.services.async_register(DOMAIN, "mark_message_as_seen", _srv_mark_message_seen)
     hass.services.async_register(DOMAIN, "refresh_messages", _srv_refresh_messages)
     hass.services.async_register(DOMAIN, "refresh_timetable", _srv_refresh_timetable)
+    hass.services.async_register(
+        DOMAIN, "mark_message_as_read", _srv_mark_message_as_read
+    )
 
     # WebSocket API
     @websocket_api.websocket_command(  # type: ignore[attr-defined]

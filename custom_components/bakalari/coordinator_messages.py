@@ -176,6 +176,17 @@ class BakalariMessagesCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         ).strip("-")
         return composed or None
 
+    async def async_mark_message_as_read(self, message_id: str, child_key: str):
+        """Mark a message as read."""
+
+        client = self._clients.get(child_key)
+        if client is None:
+            opt_key = self.children_index.option_key_for_child(child_key) or ""
+            client = BakalariClient(self.hass, self.entry, opt_key)
+            self._clients[child_key] = client
+
+        client.mark_message_as_read(message_id)
+
     @callback
     def _fire_new_message_event(self, child_key: str, msg: dict[str, Any]) -> None:
         """Emit HA event for a newly observed message."""

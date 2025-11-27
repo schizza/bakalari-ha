@@ -506,3 +506,20 @@ class BakalariClient:
         _all_marks_summary = await _marks.get_all_marks_summary()
 
         return (dict(_snapshot), _all_marks_summary)
+
+    @api_call(
+        label="Mark message as read",
+        default=None,
+    )
+    async def mark_message_as_read(self, lib, message_id: str):
+        """Mark a message as read."""
+
+        _LOGGER.debug(
+            "[class=%s module=%s] Mark message as read, message id: %s",
+            self.__class__.__name__,
+            __name__,
+            message_id,
+        )
+        messages = Komens(lib)
+
+        await messages.message_mark_read(message_id)
