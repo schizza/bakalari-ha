@@ -130,12 +130,14 @@ def _register_services(hass: HomeAssistant, entry: ConfigEntry) -> None:
 
     async def _srv_sign_marks(call) -> None:
         child_key = call.data["child_key"]
-        coord = hass.data[DOMAIN][entry.entry_id]["marks"]
+        coord: BakalariMarksCoordinator = hass.data[DOMAIN][entry.entry_id]["marks"]
         try:
             await coord.async_sign_marks(child_key, call.data["subjects"])
         except Exception as err:
             msg = f"Nepodařilo se podepsat známky pro {child_key}: {err}"
             raise HomeAssistantError(msg) from err
+        finally:
+            await coord.async_request_refresh()
 
     hass.services.async_register(DOMAIN, "mark_as_seen", _srv_mark_seen)
     hass.services.async_register(DOMAIN, "refresh", _srv_refresh)
