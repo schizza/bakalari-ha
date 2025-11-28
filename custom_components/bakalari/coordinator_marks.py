@@ -181,12 +181,12 @@ class BakalariMarksCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             "summary": all_marks_summary,
         }
 
-    async def sign_all_marks(self, child_key, subjects: list[str]):
+    async def sign_marks(self, child_key, subjects: list[str]):
         """Sign all marks for a child."""
         client = self._clients[child_key]
 
         try:
-            await client.sign_all_marks(subjects)
+            await client.async_sign_marks(subjects)
         except Exception as err:
             raise HomeAssistantError from err
 

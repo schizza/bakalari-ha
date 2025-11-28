@@ -508,7 +508,7 @@ class BakalariClient:
         return (dict(_snapshot), _all_marks_summary)
 
     @api_call(label="Sign all marks", default=None)
-    async def sign_all_marks(self, lib, subjects: list[str]):
+    async def async_sign_marks(self, lib, subjects: list[str]):
         """Sign all marks."""
 
         _LOGGER.debug(
@@ -518,4 +518,4 @@ class BakalariClient:
         )
 
         marks = Marks(lib)
-        response = await marks.sign_all_marks(subjects)
+        await marks.async_sign_marks(subjects)
