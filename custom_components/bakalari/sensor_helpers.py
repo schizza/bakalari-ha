@@ -11,13 +11,13 @@ from homeassistant.components.sensor import SensorEntity
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .coordinator import BakalariCoordinator, Child
+from .coordinator_marks import BakalariMarksCoordinator, Child
 
 _LOGGER = logging.getLogger(__name__)
 
 
 def _subjects_sensors_map(
-    coordinator: BakalariCoordinator, child: Child
+    coordinator: BakalariMarksCoordinator, child: Child
 ) -> dict[str, str]:
     """Generate a mapping of sensors names to subject names."""
     entry_id = coordinator.entry.entry_id
@@ -44,7 +44,7 @@ def _subjects_sensors_map(
 
 
 def get_child_subjects(
-    coordinator: BakalariCoordinator, child: Child
+    coordinator: BakalariMarksCoordinator, child: Child
 ) -> dict[str, Any]:
     """Get childs subjects."""
 
@@ -76,6 +76,7 @@ def get_child_subjects(
     sensor_map: dict[str, str] = _subjects_sensors_map(coordinator, child)
 
     return {
+        "child_key": child.key,
         "friendly_names": friendly_names,
         "mapping_names": mapping_names,
         "sensor_map": sensor_map,
@@ -138,7 +139,7 @@ def derive_subjects_from_data(
 
 
 def create_subject_entities_for_child(
-    coord: BakalariCoordinator, child: Child, data_now: dict[str, Any]
+    coord: BakalariMarksCoordinator, child: Child, data_now: dict[str, Any]
 ) -> list[tuple[str, str]]:
     """Create per-subject mark sensors for a child based on current data.
 
@@ -155,7 +156,7 @@ def create_subject_entities_for_child(
 
 
 def seed_created_subjects_from_data(
-    coord: BakalariCoordinator, data_now: dict[str, Any]
+    coord: BakalariMarksCoordinator, data_now: dict[str, Any]
 ) -> dict[str, set[str]]:
     """Initialize a mapping child_key -> set(subject_key) from the current data snapshot.
 
@@ -178,7 +179,7 @@ def seed_created_subjects_from_data(
 
 
 def build_subjects_listener(
-    coord: BakalariCoordinator,
+    coord: BakalariMarksCoordinator,
     created_subjects: dict[str, set[str]],
     async_add_entities: AddEntitiesCallback,
 ) -> Callable[[], None]:
@@ -215,7 +216,7 @@ def sanitize(sanitize: str) -> str:
 
 
 def aggregate_marks_for_child(
-    coord: BakalariCoordinator,
+    coord: BakalariMarksCoordinator,
     child_key: str,
     items: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
@@ -360,7 +361,7 @@ def _parse_numeric_mark(item: dict[str, Any]) -> tuple[float | None, float]:
 
 
 def _get_items_for_child(
-    coord: BakalariCoordinator, child_key: str
+    coord: BakalariMarksCoordinator, child_key: str
 ) -> list[dict[str, Any]]:
     """Get marks list for the child from coordinator data."""
     data = coord.data or {}

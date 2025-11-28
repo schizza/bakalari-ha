@@ -1,4 +1,34 @@
-# # Changelog
+## Changelog
+
+## v1.4.0
+
+## ✨ Nové funkce
+
+- **Introduce `confirmed` filed to marks** (#83) @schizza
+  - zavádí novou funkci pro podpis známek
+  - nový atribut u známky - `confirmed`, který označuje, zda je zpráva přečtená
+
+## 🧹 Refaktoring / Údržba
+
+- **Bump API version to 0.9.0** (#84) @schizza
+  - zvednuta verze pro API endpoint na 0.9.0
+
+- **Refactor Bakalari integration to separate coordinators** (#82) (#80) @schizza
+  - Rozdělení společného koordinátoru na vlasní koordinatory pro každý modul
+  - seznam dětí je nyní společný pro všechny entity přes `ChildrenIndex`
+  - Proveden update `async_setup_entry` pro každý koordinator zvlášť
+  - `Kalendář` nyní používá vlastní koordinator a kešuje data z koordinatoru
+  - Odstraněno přímé volání API z kalendáře, data se nyní využívají z koordinatoru
+  - Každý koordinator má nyní vlastní interval aktualizace
+  - Předělány entity, senzory, websocket a services na nové koordinatory
+  
+---
+## 📦 Technické
+- Verze integrace: `v1.4.0`
+- Vyžaduje API verzi `0.9.0+`
+- Minimální verze Home Assistant: `2025.9+`
+- Předchozí tag: `v1.3.1`
+- Autoři přispěli: @schizza
 
 ## v1.3.1
 
