@@ -10,7 +10,7 @@ from homeassistant.helpers.update_coordinator import (
 )
 
 from .children import Child
-from .const import MANUFACTURER, MODEL
+from .const import MANUFACTURER, MODEL, SW_VERSION
 from .utils import device_ident
 
 
@@ -36,5 +36,5 @@ class BakalariEntity(CoordinatorEntity[DataUpdateCoordinator]):
             "manufacturer": MANUFACTURER,
             "name": f"Bakaláři – {self.child.display_name}",
             "model": MODEL,
-            "sw_version": getattr(self.coordinator, "api_version", None),
+            "sw_version": SW_VERSION,
         }

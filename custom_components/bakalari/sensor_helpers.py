@@ -76,6 +76,7 @@ def get_child_subjects(
     sensor_map: dict[str, str] = _subjects_sensors_map(coordinator, child)
 
     return {
+        "child_key": child.key,
         "friendly_names": friendly_names,
         "mapping_names": mapping_names,
         "sensor_map": sensor_map,

@@ -9,19 +9,18 @@ from typing import Any
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.util import dt
 
 from .api import BakalariClient
 from .children import Child, ChildrenIndex
 from .const import (
-    API_VERSION,
     CONF_SCAN_INTERVAL,
     CONF_SCHOOL_YEAR_START_DAY,
     CONF_SCHOOL_YEAR_START_MONTH,
     DEFAULT_SCAN_INTERVAL,
     DOMAIN,
-    LIB_VERSION,
 )
 from .utils import school_year_bounds
 
@@ -40,8 +39,7 @@ class BakalariMarksCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self.children_index = children_index
         self.child_list = list(children_index.children)
 
-        # Expose library/API version to entities
-        self.api_version: str = f"API: {API_VERSION} Library: {LIB_VERSION}"
+        # api_version removed; integration uses central SW_VERSION for device info
 
         # Diff cache per child: set of (child_key, mark_id)
         self._seen: set[tuple[str, str]] = set()
@@ -179,6 +177,15 @@ class BakalariMarksCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             "snapshot": snapshot,
             "summary": all_marks_summary,
         }
+
+    async def async_sign_marks(self, child_key, subjects: list[str]):
+        """Sign all marks for a child."""
+        client = self._clients[child_key]
+
+        try:
+            await client.async_sign_marks(subjects)
+        except Exception as err:
+            raise HomeAssistantError from err
 
     # ---------- Event helpers ----------
 

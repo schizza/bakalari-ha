@@ -2,18 +2,20 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
 
 from async_bakalari_api import configure_logging
 from homeassistant.components import websocket_api
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers import device_registry as dr
 import voluptuous as vol
 
 from .children import ChildrenIndex
-from .const import DOMAIN, MANUFACTURER, MODEL, PLATFORMS
+from .const import DOMAIN, MANUFACTURER, MODEL, PLATFORMS, SW_VERSION
 from .coordinator_marks import BakalariMarksCoordinator
 from .coordinator_messages import BakalariMessagesCoordinator
 from .coordinator_timetable import BakalariTimetableCoordinator
@@ -84,31 +86,10 @@ def _dev_console_handler_for(
     configure_logging(logger.getEffectiveLevel())
 
 
-async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
-    """Set up of Bakalari component."""
-    _dev_console_handler_for(
-        logging.getLogger("custom_components.bakalari"), CustomFormatter()
-    )
-
-    children = ChildrenIndex.from_entry(entry)
-
-    coord_marks = BakalariMarksCoordinator(hass, entry, children)
-    coord_msgs = BakalariMessagesCoordinator(hass, entry, children)
-    coord_tt = BakalariTimetableCoordinator(hass, entry, children)
-
-    hass.data.setdefault(DOMAIN, {})
-    hass.data[DOMAIN][entry.entry_id] = {
-        "children": children,
-        "marks": coord_marks,
-        "messages": coord_msgs,
-        "timetable": coord_tt,
-    }
-
-    await coord_marks.async_config_entry_first_refresh()
-    await coord_msgs.async_config_entry_first_refresh()
-    await coord_tt.async_config_entry_first_refresh()
-
-    # Device Registry: one device per child
+def _register_devices(
+    hass: HomeAssistant, entry: ConfigEntry, children: ChildrenIndex
+) -> None:
+    """Register one device per child in the device registry."""
     devreg = dr.async_get(hass)
     for child in children.children:
         devreg.async_get_or_create(
@@ -117,26 +98,29 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             manufacturer=MANUFACTURER,
             name=f"Bakaláři – {child.display_name}",
             model=MODEL,
-            sw_version=coord_marks.api_version,
+            sw_version=SW_VERSION,
         )
 
-    # Services
+
+def _register_services(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    """Register integration services."""
+
     async def _srv_mark_seen(call) -> None:
-        await coord_marks.async_mark_seen(
-            call.data["mark_id"], call.data.get("child_key")
-        )
-        await coord_marks.async_request_refresh()
+        ceid = entry.entry_id
+        coord = hass.data[DOMAIN][ceid]["marks"]
+        await coord.async_mark_seen(call.data["mark_id"], call.data.get("child_key"))
+        await coord.async_request_refresh()
 
     async def _srv_refresh(call) -> None:  # noqa: ARG001
-        await coord_marks.async_refresh()
+        await hass.data[DOMAIN][entry.entry_id]["marks"].async_refresh()
 
     async def _srv_mark_message_seen(call) -> None:
         ceid = entry.entry_id
-        coord_msgs = hass.data[DOMAIN][ceid]["messages"]
-        await coord_msgs.async_mark_message_seen(
+        coord = hass.data[DOMAIN][ceid]["messages"]
+        await coord.async_mark_message_seen(
             call.data["message_id"], call.data.get("child_key")
         )
-        await coord_msgs.async_request_refresh()
+        await coord.async_request_refresh()
 
     async def _srv_refresh_messages(call) -> None:  # noqa: ARG001
         await hass.data[DOMAIN][entry.entry_id]["messages"].async_refresh()
@@ -144,13 +128,28 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     async def _srv_refresh_timetable(call) -> None:  # noqa: ARG001
         await hass.data[DOMAIN][entry.entry_id]["timetable"].async_refresh()
 
+    async def _srv_sign_marks(call) -> None:
+        child_key = call.data["child_key"]
+        coord: BakalariMarksCoordinator = hass.data[DOMAIN][entry.entry_id]["marks"]
+        try:
+            await coord.async_sign_marks(child_key, call.data["subjects"])
+        except Exception as err:
+            msg = f"Nepodařilo se podepsat známky pro {child_key}: {err}"
+            raise HomeAssistantError(msg) from err
+        finally:
+            await coord.async_request_refresh()
+
     hass.services.async_register(DOMAIN, "mark_as_seen", _srv_mark_seen)
     hass.services.async_register(DOMAIN, "refresh", _srv_refresh)
     hass.services.async_register(DOMAIN, "mark_message_as_seen", _srv_mark_message_seen)
     hass.services.async_register(DOMAIN, "refresh_messages", _srv_refresh_messages)
     hass.services.async_register(DOMAIN, "refresh_timetable", _srv_refresh_timetable)
+    hass.services.async_register(DOMAIN, "sign_all_marks", _srv_sign_marks)
 
-    # WebSocket API
+
+def _register_websocket(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    """Register WebSocket API commands."""
+
     @websocket_api.websocket_command(  # type: ignore[attr-defined]
         {
             vol.Required("type"): f"{DOMAIN}/get_marks",
@@ -204,6 +203,41 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         connection.send_result(msg["id"], {"items": data})
 
     websocket_api.async_register_command(hass, ws_get_timetable)
+
+
+async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+    """Set up of Bakalari component."""
+    _dev_console_handler_for(
+        logging.getLogger("custom_components.bakalari"), CustomFormatter()
+    )
+
+    children = ChildrenIndex.from_entry(entry)
+
+    coord_marks = BakalariMarksCoordinator(hass, entry, children)
+    coord_msgs = BakalariMessagesCoordinator(hass, entry, children)
+    coord_tt = BakalariTimetableCoordinator(hass, entry, children)
+
+    hass.data.setdefault(DOMAIN, {})
+    hass.data[DOMAIN][entry.entry_id] = {
+        "children": children,
+        "marks": coord_marks,
+        "messages": coord_msgs,
+        "timetable": coord_tt,
+    }
+
+    # Do the first refresh in parallel
+    await asyncio.gather(
+        coord_marks.async_config_entry_first_refresh(),
+        coord_msgs.async_config_entry_first_refresh(),
+        coord_tt.async_config_entry_first_refresh(),
+    )
+
+    # Device Registry
+    _register_devices(hass, entry, children)
+
+    # Services and WebSocket API
+    _register_services(hass, entry)
+    _register_websocket(hass, entry)
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     entry.async_on_unload(entry.add_update_listener(_async_update_listener))
