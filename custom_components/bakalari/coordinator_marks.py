@@ -16,13 +16,11 @@ from homeassistant.util import dt
 from .api import BakalariClient
 from .children import Child, ChildrenIndex
 from .const import (
-    API_VERSION,
     CONF_SCAN_INTERVAL,
     CONF_SCHOOL_YEAR_START_DAY,
     CONF_SCHOOL_YEAR_START_MONTH,
     DEFAULT_SCAN_INTERVAL,
     DOMAIN,
-    LIB_VERSION,
 )
 from .utils import school_year_bounds
 
@@ -41,8 +39,7 @@ class BakalariMarksCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self.children_index = children_index
         self.child_list = list(children_index.children)
 
-        # Expose library/API version to entities
-        self.api_version: str = f"API: {API_VERSION} Library: {LIB_VERSION}"
+        # api_version removed; integration uses central SW_VERSION for device info
 
         # Diff cache per child: set of (child_key, mark_id)
         self._seen: set[tuple[str, str]] = set()
