@@ -14,17 +14,6 @@ Custom komponenta pro Home Assistant, založená na [async-bakalari-api3](https:
   - původní senzor `all_marks` již drží jen metadata pro Lovelace kartu
   - obsah metadat a co lze z tohoto senzoru získat viz níže.
 
-Od verze 1.1.0 jsou již senzory migrovány pod `DeviceRegistry`
- - nově je každé dítě jako separátní `DeviceRegistry` (zařízení v HUBu) s jednotlivými senzory
- - `uid` senzoru se nezměnilo, ale změnil se název senzoru - nyní dědí jméno z `DeviceRegistry`
-   - nově jsou tedy názvy senzorů takto: `sensor.<device_name>_<sensor_name>`
-   - kde `<device_name>` je jméno dítěte + škola
-   - `friendly_name` je složen z `<sensor_name> - <short_name>`, tedy např. `Rozvrh - Jan`
-
- - staré senzory se již neaktualizují a nebudou generovány při odebrání a znovupřidání integrace.
-
-  ## ⚠️ ***Po aktualizaci na verzi 1.1.0+ je tedy nutné změnit názvy senzorů v kartách v Lovelace***
-
 ## Instalace (HACS)
 
 1. V HACS → **Integrations** → menu (⋮) → **Custom repositories**
@@ -44,7 +33,9 @@ Od verze 1.1.0 jsou již senzory migrovány pod `DeviceRegistry`
   - tento senzor stahuje rozvrh na aktuální týden +- 7 dní
 
 - Známky
-  - každý předmět má nyní svůj vlastní senzro
+  - každý předmět má nyní svůj vlastní senzor
+  - lze podepisovat známky - buď jednotlivě u každé známky nebo hromadně v záhlaví Lovelace karty\
+  u nepodepsné známky se zobrazí ikona podpisu, která je proklikávací.
   - původní senzor `all_marks` udržuje pouze metadata pro Lovelace kartu
   - ze školního serveru se již stahují všechny známky, zrušen limit 30 posledních
   - známky jsou agregované per-předmět a per-child
