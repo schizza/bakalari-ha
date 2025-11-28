@@ -128,11 +128,11 @@ def _register_services(hass: HomeAssistant, entry: ConfigEntry) -> None:
     async def _srv_refresh_timetable(call) -> None:  # noqa: ARG001
         await hass.data[DOMAIN][entry.entry_id]["timetable"].async_refresh()
 
-    async def _srv_sign_all_marks(call) -> None:
+    async def _srv_sign_marks(call) -> None:
         child_key = call.data["child_key"]
         coord = hass.data[DOMAIN][entry.entry_id]["marks"]
         try:
-            await coord.sign_all_marks(child_key, call.data["subjects"])
+            await coord.async_sign_marks(child_key, call.data["subjects"])
         except Exception as err:
             msg = f"Nepodařilo se podepsat známky pro {child_key}: {err}"
             raise HomeAssistantError(msg) from err
@@ -142,7 +142,7 @@ def _register_services(hass: HomeAssistant, entry: ConfigEntry) -> None:
     hass.services.async_register(DOMAIN, "mark_message_as_seen", _srv_mark_message_seen)
     hass.services.async_register(DOMAIN, "refresh_messages", _srv_refresh_messages)
     hass.services.async_register(DOMAIN, "refresh_timetable", _srv_refresh_timetable)
-    hass.services.async_register(DOMAIN, "sign_all_marks", _srv_sign_all_marks)
+    hass.services.async_register(DOMAIN, "sign_all_marks", _srv_sign_marks)
 
 
 def _register_websocket(hass: HomeAssistant, entry: ConfigEntry) -> None:

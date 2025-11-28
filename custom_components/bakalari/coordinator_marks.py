@@ -178,7 +178,7 @@ class BakalariMarksCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             "summary": all_marks_summary,
         }
 
-    async def sign_marks(self, child_key, subjects: list[str]):
+    async def async_sign_marks(self, child_key, subjects: list[str]):
         """Sign all marks for a child."""
         client = self._clients[child_key]
 
