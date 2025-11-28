@@ -8,6 +8,7 @@ from async_bakalari_api import configure_logging
 from homeassistant.components import websocket_api
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers import device_registry as dr
 import voluptuous as vol
@@ -144,11 +145,21 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     async def _srv_refresh_timetable(call) -> None:  # noqa: ARG001
         await hass.data[DOMAIN][entry.entry_id]["timetable"].async_refresh()
 
+    async def _srv_sign_all_marks(call) -> None:
+        child_key = call.data["child_key"]
+        coord = hass.data[DOMAIN][entry.entry_id]["marks"]
+        try:
+            await coord.sign_all_marks(child_key, call.data["subjects"])
+        except Exception as err:
+            msg = f"Nepodařilo se podepsat známky pro {child_key}: {err}"
+            raise HomeAssistantError(msg) from err
+
     hass.services.async_register(DOMAIN, "mark_as_seen", _srv_mark_seen)
     hass.services.async_register(DOMAIN, "refresh", _srv_refresh)
     hass.services.async_register(DOMAIN, "mark_message_as_seen", _srv_mark_message_seen)
     hass.services.async_register(DOMAIN, "refresh_messages", _srv_refresh_messages)
     hass.services.async_register(DOMAIN, "refresh_timetable", _srv_refresh_timetable)
+    hass.services.async_register(DOMAIN, "sign_all_marks", _srv_sign_all_marks)
 
     # WebSocket API
     @websocket_api.websocket_command(  # type: ignore[attr-defined]
