@@ -9,7 +9,7 @@ MANUFACTURER = "Bakaláři pro HomeAssistant"
 MODEL = "Bakaláři backend"
 
 LIB_VERSION: Final = "1.3.1"
-API_VERSION: Final = "0.8.1"
+API_VERSION: Final = "0.9.0"
 SW_VERSION: Final = f"API: {API_VERSION} Library: {LIB_VERSION}"
 CONF_CHILDREN: Final = "children"
 CONF_CREDENTIALS: Final = "credentials"

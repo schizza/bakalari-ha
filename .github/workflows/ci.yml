@@ -23,7 +23,7 @@ jobs:
           pip install -e .
           # HA runtime pro testy (minimální):
           pip install homeassistant==2025.9.4
-          pip install async-bakalari-api==0.8.1
+          pip install async-bakalari-api==0.9.0
       - name: Ruff (lint)
         run: ruff check .
       - name: Ruff (format)

@@ -11,7 +11,7 @@ PYTEST := $(PYTHON) -m pytest
 
 # Verze / cesty
 HA_VERSION := 2025.9.4
-BAKALARI_VERSION := 0.8.1
+BAKALARI_VERSION := 0.9.0
 HA_CONFIG := ./config
 COMPONENT_PATH := custom_components/bakalari
 
