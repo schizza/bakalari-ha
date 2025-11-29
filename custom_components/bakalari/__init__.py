@@ -136,8 +136,8 @@ def _register_services(hass: HomeAssistant, entry: ConfigEntry) -> None:
         except Exception as err:
             msg = f"Nepodařilo se podepsat známky pro {child_key}: {err}"
             raise HomeAssistantError(msg) from err
-        finally:
-            await coord.async_request_refresh()
+        else:
+            await coord.async_refresh()
 
     hass.services.async_register(DOMAIN, "mark_as_seen", _srv_mark_seen)
     hass.services.async_register(DOMAIN, "refresh", _srv_refresh)
