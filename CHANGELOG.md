@@ -1,5 +1,13 @@
 ## Changelog
 
+## v1.4.1
+
+## 🐛 Opravy chyb
+
+**Refactor mark signing to refresh coordinator on success** (#87) @schizza
+ - opravena chyba, kdy při neúspěšném `service_call` volání z API byl koordinator floodován refresh requesty
+
+
 ## v1.4.0
 
 ## ✨ Nové funkce
