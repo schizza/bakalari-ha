@@ -108,6 +108,9 @@ class BakalariMessagesCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         if ck and message_id:
             self._seen_msgs.add((ck, message_id))
 
+        messages = self._clients[ck]
+        await messages.message_mark_as_read(message_id)
+
     # -------- Update lifecycle --------
 
     async def _async_update_data(self) -> dict[str, Any]:
