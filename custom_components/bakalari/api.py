@@ -524,7 +524,7 @@ class BakalariClient:
         await marks.async_sign_marks(subjects)
 
     @api_call(label="Mark message as read", default=None)
-    async def message_mark_as_read(self, lib, mid):
+    async def message_mark_as_read(self, lib, mid: str):
         """Mark message as read.
 
         Call API clients mark message as read function.
