@@ -14,6 +14,7 @@ from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers import device_registry as dr
 import voluptuous as vol
 
+from .api import BakalariClient
 from .children import ChildrenIndex
 from .const import DOMAIN, MANUFACTURER, MODEL, PLATFORMS, SW_VERSION
 from .coordinator_marks import BakalariMarksCoordinator
@@ -220,15 +221,31 @@ def _register_websocket(hass: HomeAssistant, entry: ConfigEntry) -> None:
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up of Bakalari component."""
 
-    children = ChildrenIndex.from_entry(entry)
+    children: ChildrenIndex = ChildrenIndex.from_entry(entry)
 
-    coord_marks = BakalariMarksCoordinator(hass, entry, children)
-    coord_msgs = BakalariMessagesCoordinator(hass, entry, children)
-    coord_tt = BakalariTimetableCoordinator(hass, entry, children)
+    # create shared library for each child
+    _clients: dict[str, BakalariClient] = {}
+    for child in children.children:
+        _LOGGER.debug(
+            "[class=%s module=%s] Creating client for child: %s",
+            object.__name__,
+            __name__,
+            child.display_name,
+        )
+
+        _client = BakalariClient(
+            hass, entry, children.option_key_for_child(child.key) or ""
+        )
+        _clients[child.key] = _client
+
+    coord_marks = BakalariMarksCoordinator(hass, entry, children, _clients)
+    coord_msgs = BakalariMessagesCoordinator(hass, entry, children, _clients)
+    coord_tt = BakalariTimetableCoordinator(hass, entry, children, _clients)
 
     hass.data.setdefault(DOMAIN, {})
     hass.data[DOMAIN][entry.entry_id] = {
         "children": children,
+        "clients": _clients,
         "marks": coord_marks,
         "messages": coord_msgs,
         "timetable": coord_tt,

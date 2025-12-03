@@ -31,15 +31,18 @@ class BakalariMarksCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     """Coordinator for Bakaláři marks – minimal data model for sensors."""
 
     def __init__(
-        self, hass: HomeAssistant, entry: ConfigEntry, children_index: ChildrenIndex
+        self,
+        hass: HomeAssistant,
+        entry: ConfigEntry,
+        children_index: ChildrenIndex,
+        clients: dict[str, BakalariClient],
     ) -> None:
         """Initialize the coordinator."""
         self.hass = hass
         self.entry = entry
-        self.children_index = children_index
-        self.child_list = list(children_index.children)
-
-        # api_version removed; integration uses central SW_VERSION for device info
+        self.children_index: ChildrenIndex = children_index
+        self.child_list = list(self.children_index.children)
+        self._clients: dict[str, BakalariClient] = clients
 
         # Diff cache per child: set of (child_key, mark_id)
         self._seen: set[tuple[str, str]] = set()
@@ -56,9 +59,6 @@ class BakalariMarksCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             update_interval=update_interval,
         )
 
-        # Per-child clients cache (BakalariClient instances)
-        self._clients: dict[str, BakalariClient] = {}
-
         _LOGGER.debug(
             "[class=%s module=%s] Marks coordinator ready (entry_id=%s, children=%d)",
             self.__class__.__name__,
@@ -66,6 +66,21 @@ class BakalariMarksCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             entry.entry_id,
             len(self.child_list),
         )
+
+    def get_client(self, child_key: str) -> BakalariClient | None:
+        """Return a client for a given child."""
+
+        client = self._clients[child_key] or None
+        if not client:
+            _LOGGER.error(
+                "[class=%s module=%s] Failed to get client for child %s",
+                self.__class__.__name__,
+                __name__,
+                child_key,
+                stacklevel=2,
+            )
+            return None
+        return client
 
     # ---------- Public API for services / WebSocket ----------
 
@@ -141,13 +156,9 @@ class BakalariMarksCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     ) -> dict[str, Any]:
         """Fetch raw marks for a specific child via BakalariClient."""
 
-        # Map composite key to original options key (usually user_id)
-        opt_key = self.children_index.option_key_for_child(child.key) or child.user_id
-
-        client = self._clients.get(child.key)
+        client: BakalariClient | None = self.get_client(child.key)
         if client is None:
-            client = BakalariClient(self.hass, self.entry, opt_key)
-            self._clients[child.key] = client  # cache per child
+            return {}
 
         # Marks snapshot (subjects, grouped, flat)
         dt_from = (
@@ -180,7 +191,10 @@ class BakalariMarksCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
     async def async_sign_marks(self, child_key, subjects: list[str]):
         """Sign all marks for a child."""
-        client = self._clients[child_key]
+        client: BakalariClient | None = self.get_client(child_key)
+
+        if not client:
+            return
 
         try:
             await client.async_sign_marks(subjects)
