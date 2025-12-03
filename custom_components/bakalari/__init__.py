@@ -14,6 +14,7 @@ from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers import device_registry as dr
 import voluptuous as vol
 
+from .api import BakalariClient
 from .children import ChildrenIndex
 from .const import DOMAIN, MANUFACTURER, MODEL, PLATFORMS, SW_VERSION
 from .coordinator_marks import BakalariMarksCoordinator
@@ -41,7 +42,7 @@ class CustomFormatter(logging.Formatter):
     cyan = "\u001b[36m"
     white = "\u001b[37m"
 
-    _format = f"%(asctime)s - %(levelname)s [%(name)s]\n{reset}Message: %(message)s)"
+    _format = f"%(asctime)s - %(levelname)s [%(name)s] %(funcName)s{reset}\nMessage: %(message)s)"
     dateformat = "%d/%m/%Y %H:%M:%S"
 
     FORMATS = {
@@ -62,6 +63,10 @@ class CustomFormatter(logging.Formatter):
 
 async def async_setup(hass: HomeAssistant, config) -> bool:
     """Set up the Bakalari component."""
+
+    _dev_console_handler_for(
+        logging.getLogger("custom_components.bakalari"), CustomFormatter()
+    )
     hass.data.setdefault(DOMAIN, {})
     return True
 
@@ -73,11 +78,19 @@ def _dev_console_handler_for(
     # pokud už nějaké handlery existují (na loggeru NEBO u předků), nedělej nic
     # if logger.hasHandlers():
     #     return
+    existing = [h for h in logger.handlers if getattr(h, "_bakalari_dev", False)]
+    if existing:
+        if formatter is not None:
+            existing[0].setFormatter(formatter)
+        logger.propagate = False
+        configure_logging(logger.getEffectiveLevel())
+        return
 
     h = logging.StreamHandler()  # default: stderr
     if formatter is None:
         formatter = logging.Formatter("[%(levelname)s] %(name)s: %(message)s")
     h.setFormatter(formatter)
+    h._bakalari_dev = True  # pyright: ignore[reportAttributeAccessIssue]
 
     # level nech na loggeru; handler level nenech NOTSET explicitně – zbytečné
     logger.addHandler(h)
@@ -120,7 +133,7 @@ def _register_services(hass: HomeAssistant, entry: ConfigEntry) -> None:
         await coord.async_mark_message_seen(
             call.data["message_id"], call.data.get("child_key")
         )
-        await coord.async_request_refresh()
+        await coord.async_refresh()
 
     async def _srv_refresh_messages(call) -> None:  # noqa: ARG001
         await hass.data[DOMAIN][entry.entry_id]["messages"].async_refresh()
@@ -207,19 +220,32 @@ def _register_websocket(hass: HomeAssistant, entry: ConfigEntry) -> None:
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up of Bakalari component."""
-    _dev_console_handler_for(
-        logging.getLogger("custom_components.bakalari"), CustomFormatter()
-    )
 
-    children = ChildrenIndex.from_entry(entry)
+    children: ChildrenIndex = ChildrenIndex.from_entry(entry)
 
-    coord_marks = BakalariMarksCoordinator(hass, entry, children)
-    coord_msgs = BakalariMessagesCoordinator(hass, entry, children)
-    coord_tt = BakalariTimetableCoordinator(hass, entry, children)
+    # create shared library for each child
+    _clients: dict[str, BakalariClient] = {}
+    for child in children.children:
+        _LOGGER.debug(
+            "[class=%s module=%s] Creating client for child: %s",
+            object.__name__,
+            __name__,
+            child.display_name,
+        )
+
+        _client = BakalariClient(
+            hass, entry, children.option_key_for_child(child.key) or ""
+        )
+        _clients[child.key] = _client
+
+    coord_marks = BakalariMarksCoordinator(hass, entry, children, _clients)
+    coord_msgs = BakalariMessagesCoordinator(hass, entry, children, _clients)
+    coord_tt = BakalariTimetableCoordinator(hass, entry, children, _clients)
 
     hass.data.setdefault(DOMAIN, {})
     hass.data[DOMAIN][entry.entry_id] = {
         "children": children,
+        "clients": _clients,
         "marks": coord_marks,
         "messages": coord_msgs,
         "timetable": coord_tt,

@@ -65,11 +65,12 @@ class BakalariClient:
         self._save_lock = asyncio.Lock()
         self._last_tokens: tuple[str, str] | None = None
 
-        _LOGGER.info(
+        _LOGGER.debug(
             "[class=%s module=%s] Created BakalariClient instance for child_id=%s",
             self.__class__.__name__,
             __name__,
             self.child_id,
+            stacklevel=2,
         )
 
     def api_call(
@@ -214,12 +215,14 @@ class BakalariClient:
                     self.lib = Bakalari(
                         server=server, credentials=cred, session=session
                     )
-                    _LOGGER.info(
+                    _LOGGER.debug(
                         "[class=%s module=%s] Bakalari library instance created for child_id=%s With parameters: %s",
                         self.__class__.__name__,
                         __name__,
                         self.child_id,
                         redact_child_info(child),
+                        stacklevel=2,
+                        stack_info=True,
                     )
 
         self._last_tokens = self._snapshot_tokens()
@@ -519,3 +522,17 @@ class BakalariClient:
 
         marks = Marks(lib)
         await marks.async_sign_marks(subjects)
+
+    @api_call(label="Mark message as read", default=None)
+    async def message_mark_as_read(self, lib, mid: str):
+        """Mark message as read.
+
+        Call API clients mark message as read function.
+        """
+        _LOGGER.debug(
+            "[class=%s module=%s] Called mark message as read endpoint.",
+            self.__class__.__name__,
+            __name__,
+        )
+        komens: Komens = Komens(lib)
+        await komens.message_mark_read(mid)

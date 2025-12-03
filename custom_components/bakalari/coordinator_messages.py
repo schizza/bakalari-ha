@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
 from datetime import timedelta
 import logging
 from random import random
@@ -14,7 +13,7 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, Upda
 import orjson
 
 from .api import BakalariClient
-from .children import Child, ChildrenIndex
+from .children import ChildrenIndex
 from .const import (
     DEFAULT_SCAN_INTERVAL,
     DOMAIN,
@@ -27,31 +26,24 @@ CONF_SCAN_INTERVAL_MESSAGES = "scan_interval_messages"
 MESSAGES_DEFAULT_SCAN_INTERVAL = 3600  # 1 hour default for messages
 
 
-@dataclass(slots=True, frozen=True)
-class _ChildOptMap:
-    child: Child
-    opt_key: str  # original options key (usually user_id)
-
-
 class BakalariMessagesCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     """Coordinator fetching Komens messages per child at an independent interval."""
 
     def __init__(
-        self, hass: HomeAssistant, entry: ConfigEntry, children_index: ChildrenIndex
+        self,
+        hass: HomeAssistant,
+        entry: ConfigEntry,
+        children: ChildrenIndex,
+        clients: dict[str, BakalariClient],
     ) -> None:
         """Initialize the messages coordinator."""
         self.hass = hass
         self.entry = entry
 
-        # Prepare children from shared index
-        self.children_index = children_index
-        self._children: list[_ChildOptMap] = []
-        for ch in self.children_index.children:
-            opt_key = self.children_index.option_key_for_child(ch.key) or ch.user_id
-            self._children.append(_ChildOptMap(child=ch, opt_key=opt_key))
-
+        # Get children index
+        self.children_index: ChildrenIndex = children
         # Clients cache
-        self._clients: dict[str, BakalariClient] = {}
+        self._clients: dict[str, BakalariClient] = clients
 
         # Diff cache: remember seen messages per (child_key, message_id)
         self._seen_msgs: set[tuple[str, str]] = set()
@@ -78,35 +70,48 @@ class BakalariMessagesCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             self.__class__.__name__,
             __name__,
             entry.entry_id,
-            len(self._children),
+            len(self.children_index.children),
             jittered,
         )
 
     # -------- Public API --------
 
-    def child_api(self, child_key: str) -> BakalariClient | None:
-        """Return BakalariClient for a child if already created."""
-        return self._clients.get(child_key, None)
+    def get_client(self, child_key: str) -> BakalariClient | None:
+        """Return a client for a given child."""
+
+        client = self._clients[child_key] or None
+        if not client:
+            _LOGGER.error(
+                "[class=%s module=%s] Failed to get client for child %s",
+                self.__class__.__name__,
+                __name__,
+                child_key,
+                stacklevel=2,
+            )
+            return None
+        return client
 
     def select_messages(
-        self, child_key: str | None, limit: int | None = None
+        self, child_key: str, limit: int | None = None
     ) -> list[dict[str, Any]]:
         """Return messages for a child (already parsed/flattened)."""
-        ck = child_key or (self._children[0].child.key if self._children else "")
+
         items: list[dict[str, Any]] = (self.data or {}).get(
             "messages_by_child", {}
-        ).get(ck, []) or []
+        ).get(child_key, []) or []
         if limit is not None and limit >= 0:
             return items[:limit]
         return items
 
-    async def async_mark_message_seen(
-        self, message_id: str, child_key: str | None
-    ) -> None:
+    async def async_mark_message_seen(self, message_id: str, child_key: str) -> None:
         """Mark a message as seen to suppress 'new message' events."""
-        ck = child_key or (self._children[0].child.key if self._children else "")
-        if ck and message_id:
-            self._seen_msgs.add((ck, message_id))
+
+        if child_key and message_id:
+            self._seen_msgs.add((child_key, message_id))
+
+        client = self.get_client(child_key)
+
+        await client.message_mark_as_read(message_id)
 
     # -------- Update lifecycle --------
 
@@ -115,19 +120,19 @@ class BakalariMessagesCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         try:
             messages_by_child: dict[str, list[dict[str, Any]]] = {}
 
-            for cm in self._children:
-                parsed = await self._fetch_child_messages(cm)
+            for child in self.children_index.children:
+                parsed = await self._fetch_child_messages(child.key)
                 # annotate new/seen
                 annotated: list[dict[str, Any]] = []
                 for m in parsed:
                     mid = self._extract_message_id(m)
-                    is_new = bool(mid) and ((cm.child.key, mid) not in self._seen_msgs)
+                    is_new = bool(mid) and ((child.key, mid) not in self._seen_msgs)
                     if is_new and mid:
                         # Remember and fire an event
-                        self._seen_msgs.add((cm.child.key, mid))
-                        self._fire_new_message_event(cm.child.key, m)
+                        self._seen_msgs.add((child.key, mid))
+                        self._fire_new_message_event(child.key, m)
                     annotated.append({**m, "is_new": is_new})
-                messages_by_child[cm.child.key] = annotated
+                messages_by_child[child.key] = annotated
         except Exception as err:  # noqa: BLE001
             raise UpdateFailed(str(err)) from err
         else:
@@ -136,14 +141,11 @@ class BakalariMessagesCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 "last_sync_ok": True,
             }
 
-    async def _fetch_child_messages(self, cm: _ChildOptMap) -> list[dict[str, Any]]:
+    async def _fetch_child_messages(self, child_key: str) -> list[dict[str, Any]]:
         """Fetch and parse messages for a single child."""
-        client = self._clients.get(cm.child.key)
+        client = self.get_client(child_key)
         if client is None:
-            # Map to the original options key for client state/tokens
-            opt_key = cm.opt_key
-            client = BakalariClient(self.hass, self.entry, opt_key)
-            self._clients[cm.child.key] = client
+            return []
 
         raw_items = await client.async_get_messages()
         parsed: list[dict[str, Any]] = []
@@ -154,7 +156,7 @@ class BakalariMessagesCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 "[class=%s module=%s] Failed to parse messages for child_key=%s",
                 self.__class__.__name__,
                 __name__,
-                cm.child.key,
+                child_key,
             )
         return parsed
 

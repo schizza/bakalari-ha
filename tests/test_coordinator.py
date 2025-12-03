@@ -8,7 +8,6 @@ from typing import Any
 from homeassistant.helpers import frame as ha_frame
 import pytest
 
-from custom_components.bakalari import coordinator_marks as coordinator_mod
 from custom_components.bakalari.children import ChildrenIndex
 from custom_components.bakalari.const import (
     CONF_CHILDREN,
@@ -207,11 +206,13 @@ async def test_coordinator_builds_snapshot_and_emits_events(
 
     monkeypatch.setattr(ha_frame, "report_usage", lambda *a, **k: None)
 
-    # Inject our fake client into the coordinator module
-    monkeypatch.setattr(coordinator_mod, "BakalariClient", FakeBakalariClient)
-
+    # Build clients dict for coordinator
     children = ChildrenIndex.from_entry(entry)
-    coord = BakalariMarksCoordinator(hass, entry, children)  # pyright: ignore[]
+    clients = {
+        ch.key: FakeBakalariClient(hass, entry, children.option_key_for_child(ch.key))
+        for ch in children.children
+    }
+    coord = BakalariMarksCoordinator(hass, entry, children, clients)  # pyright: ignore[]
 
     # Run update cycle
     data = await coord._async_update_data()
@@ -285,11 +286,13 @@ async def test_coordinator_event_diff_only_new(monkeypatch: pytest.MonkeyPatch):
 
     monkeypatch.setattr(ha_frame, "report_usage", lambda *a, **k: None)
 
-    # Inject our fake client into the coordinator module
-    monkeypatch.setattr(coordinator_mod, "BakalariClient", FakeBakalariClient)
-
+    # Build clients dict for coordinator
     children = ChildrenIndex.from_entry(entry)
-    coord = BakalariMarksCoordinator(hass, entry, children)  # pyright: ignore[]
+    clients = {
+        ch.key: FakeBakalariClient(hass, entry, children.option_key_for_child(ch.key))
+        for ch in children.children
+    }
+    coord = BakalariMarksCoordinator(hass, entry, children, clients)  # pyright: ignore[]
 
     # First update -> one event
     data1 = await coord._async_update_data()
@@ -333,10 +336,8 @@ async def test_coordinator_child_mapping_and_keys(monkeypatch: pytest.MonkeyPatc
 
     monkeypatch.setattr(ha_frame, "report_usage", lambda *a, **k: None)
 
-    monkeypatch.setattr(coordinator_mod, "BakalariClient", FakeBakalariClient)
-
     children = ChildrenIndex.from_entry(entry)
-    coord = BakalariMarksCoordinator(hass, entry, children)  # pyright: ignore[]
+    coord = BakalariMarksCoordinator(hass, entry, children, {})  # pyright: ignore[]
 
     # Two children discovered
     assert len(coord.child_list) == 2
