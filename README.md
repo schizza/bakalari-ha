@@ -42,7 +42,7 @@ Custom komponenta pro Home Assistant, založená na [async-bakalari-api3](https:
   - zobrazení poslední přijaté známky nadále funguje bez rozdílu
   - přidána možnost `fire_event` pro vyvolání události při nové známce, bude sloužit k oznámení např. v mobilní aplikaci
   - přidána možnost Websocketu
-  - další funkcionality v následujících verzích
+  - známky lze nyní podepsat zavoláním `service_call` - `mark_as_seen` nebo `sign_all_marks`
 
 Příklad metadat v senzoru `Všechny známky`
 

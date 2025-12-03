@@ -1,5 +1,25 @@
 ## Changelog
 
+## v1.5.0
+
+## ✨ Nové funkce
+
+**Mark messages as read, improve logging (#88) @schizza**
+- přidán API point k podepsání známek `message_mark_as_read`
+- přidána možnost podepsat známku / známky
+- automaticky je známka podepsána na serveru školy, pokud se zavolá `service_call makr_seen`
+ 
+## 🐛 Opravy chyb
+- opravena chyba duplicit v loggeru
+- `log format` nyní ukazuje i volající funkci
+
+## 🧹 Refaktoring / Údržba
+
+**Refactors Bakalari client handling (#89) @schizza**
+- centralizace `BakalariClient` na úroveň `async_setup_entry`
+- vytvoření jedné sdílené instance `BakalariClient`, aby nedocházelo k duplicitnímu vytváření instance u každého dítěte.
+- `BakalariClient` je sdílený pro všechny koordinatory
+
 ## v1.4.1
 
 ## 🐛 Opravy chyb
