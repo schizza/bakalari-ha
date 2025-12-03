@@ -26,7 +26,6 @@ from .utils import school_year_bounds
 
 _LOGGER = logging.getLogger(__name__)
 
-
 class BakalariMarksCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     """Coordinator for Bakaláři marks – minimal data model for sensors."""
 
