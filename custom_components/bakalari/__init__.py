@@ -19,6 +19,7 @@ from .children import ChildrenIndex
 from .const import DOMAIN, MANUFACTURER, MODEL, PLATFORMS, SW_VERSION
 from .coordinator_marks import BakalariMarksCoordinator
 from .coordinator_messages import BakalariMessagesCoordinator
+from .coordinator_noticeboard import BakalariNoticeboardCoordinator
 from .coordinator_timetable import BakalariTimetableCoordinator
 from .utils import device_ident
 
@@ -241,6 +242,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     coord_marks = BakalariMarksCoordinator(hass, entry, children, _clients)
     coord_msgs = BakalariMessagesCoordinator(hass, entry, children, _clients)
     coord_tt = BakalariTimetableCoordinator(hass, entry, children, _clients)
+    coord_noticeboard: BakalariNoticeboardCoordinator = BakalariNoticeboardCoordinator(
+        hass, entry, children, _clients
+    )
 
     hass.data.setdefault(DOMAIN, {})
     hass.data[DOMAIN][entry.entry_id] = {
@@ -249,6 +253,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         "marks": coord_marks,
         "messages": coord_msgs,
         "timetable": coord_tt,
+        "noticeboard": coord_noticeboard,
     }
 
     # Do the first refresh in parallel
@@ -256,6 +261,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         coord_marks.async_config_entry_first_refresh(),
         coord_msgs.async_config_entry_first_refresh(),
         coord_tt.async_config_entry_first_refresh(),
+        coord_noticeboard.async_config_entry_first_refresh(),
     )
 
     # Device Registry
