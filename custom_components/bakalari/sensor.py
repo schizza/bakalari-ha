@@ -11,6 +11,9 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import DOMAIN
 from .coordinator_marks import BakalariMarksCoordinator
+from .coordinator_messages import BakalariMessagesCoordinator
+from .coordinator_noticeboard import BakalariNoticeboardCoordinator
+from .coordinator_timetable import BakalariTimetableCoordinator
 from .sensor_helpers import (
     build_subjects_listener,
     get_child_subjects,
@@ -23,6 +26,7 @@ from .sensor_marks import (
     BakalariSubjectMarksSensor,
 )
 from .sensor_messages import BakalariMessagesSensor
+from .sensor_noticeboard import BakalariNoticeboardSensor
 from .sensor_timetable import BakalariTimetableSensor
 
 _LOGGER = logging.getLogger(__name__)
@@ -38,9 +42,10 @@ async def async_setup_entry(
     """Set up Bakalari sensors from a config entry."""
     data = hass.data.get(DOMAIN, {}).get(entry.entry_id, {})
     children = data["children"].children
-    coord_marks: BakalariMarksCoordinator = data["marks"]
-    coord_msgs = data.get("messages")
-    coord_tt = data.get("timetable")
+    coord_marks: BakalariMarksCoordinator = data.get("marks")
+    coord_msgs: BakalariMessagesCoordinator = data.get("messages")
+    coord_tt: BakalariTimetableCoordinator = data.get("timetable")
+    coord_noticeb: BakalariNoticeboardCoordinator = data.get("noticeboard")
 
     entities = []
     data_now = coord_marks.data or {}
@@ -54,13 +59,16 @@ async def async_setup_entry(
             __name__,
             child,
         )
-        entities.append(BakalariNewMarksSensor(coord_marks, child))
-        entities.append(BakalariLastMarkSensor(coord_marks, child))
+        if coord_marks is not None:
+            entities.append(BakalariNewMarksSensor(coord_marks, child))
+            entities.append(BakalariLastMarkSensor(coord_marks, child))
+            entities.append(BakalariIndexHelperSensor(coord_marks, child))
         if coord_msgs is not None:
             entities.append(BakalariMessagesSensor(coord_msgs, child))
         if coord_tt is not None:
             entities.append(BakalariTimetableSensor(coord_tt, child))
-        entities.append(BakalariIndexHelperSensor(coord_marks, child))
+        if coord_noticeb is not None:
+            entities.append(BakalariNoticeboardSensor(coord_noticeb, child))
 
         # Per-subject sensors
         subjects_dict: dict[str, Any] = get_child_subjects(coord_marks, child)
