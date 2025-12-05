@@ -12,7 +12,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from .const import DOMAIN
 from .coordinator_marks import BakalariMarksCoordinator
 from .coordinator_messages import BakalariMessagesCoordinator
-from .coordinator_noticeboard import BakalariNotoceboardCoordinator
+from .coordinator_noticeboard import BakalariNoticeboardCoordinator
 from .coordinator_timetable import BakalariTimetableCoordinator
 from .sensor_helpers import (
     build_subjects_listener,
@@ -45,7 +45,7 @@ async def async_setup_entry(
     coord_marks: BakalariMarksCoordinator = data.get("marks")
     coord_msgs: BakalariMessagesCoordinator = data.get("messages")
     coord_tt: BakalariTimetableCoordinator = data.get("timetable")
-    coord_noticeb: BakalariNotoceboardCoordinator = data.get("noticeboard")
+    coord_noticeb: BakalariNoticeboardCoordinator = data.get("noticeboard")
 
     entities = []
     data_now = coord_marks.data or {}

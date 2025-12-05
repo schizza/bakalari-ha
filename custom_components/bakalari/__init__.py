@@ -19,7 +19,7 @@ from .children import ChildrenIndex
 from .const import DOMAIN, MANUFACTURER, MODEL, PLATFORMS, SW_VERSION
 from .coordinator_marks import BakalariMarksCoordinator
 from .coordinator_messages import BakalariMessagesCoordinator
-from .coordinator_noticeboard import BakalariNotoceboardCoordinator
+from .coordinator_noticeboard import BakalariNoticeboardCoordinator
 from .coordinator_timetable import BakalariTimetableCoordinator
 from .utils import device_ident
 
@@ -242,7 +242,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     coord_marks = BakalariMarksCoordinator(hass, entry, children, _clients)
     coord_msgs = BakalariMessagesCoordinator(hass, entry, children, _clients)
     coord_tt = BakalariTimetableCoordinator(hass, entry, children, _clients)
-    coord_noticeboard: BakalariNotoceboardCoordinator = BakalariNotoceboardCoordinator(
+    coord_noticeboard: BakalariNoticeboardCoordinator = BakalariNoticeboardCoordinator(
         hass, entry, children, _clients
     )
 

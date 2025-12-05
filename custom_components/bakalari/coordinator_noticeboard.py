@@ -26,7 +26,7 @@ CONF_SCAN_INTERVAL_NOTICEBOARD = "scan_interval_noticeboard"
 NOTICEBOARD_DEFAULT_SCAN_INTERVAL = 1800  # 1 hour default for messages
 
 
-class BakalariNotoceboardCoordinator(DataUpdateCoordinator[dict[str, Any]]):
+class BakalariNoticeboardCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     """Coordinator fetching Noticeboard messages."""
 
     def __init__(
