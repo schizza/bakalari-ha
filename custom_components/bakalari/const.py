@@ -8,7 +8,7 @@ PLATFORMS = ["sensor", "calendar"]
 MANUFACTURER = "Bakaláři pro HomeAssistant"
 MODEL = "Bakaláři backend"
 
-LIB_VERSION: Final = "1.5.0"
+LIB_VERSION: Final = "1.6.0"
 API_VERSION: Final = "0.10.0"
 SW_VERSION: Final = f"API: {API_VERSION} Library: {LIB_VERSION}"
 CONF_CHILDREN: Final = "children"

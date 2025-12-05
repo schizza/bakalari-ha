@@ -1,5 +1,13 @@
 ## Changelog
 
+## 1.6.0
+
+## ✨ Nové funkce
+
+**Add noticeboard support to Bakalari integration (#91) @schizza**
+- přidána funkce `Nástěnka`
+- `Noticeboard` ze serverů stahuje stejná data jako `Komens`, lze tedy využít kartu `Zprávy` ve frontendu k zobrazení dat
+
 ## v1.5.0
 
 ## ✨ Nové funkce
