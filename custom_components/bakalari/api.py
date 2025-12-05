@@ -222,7 +222,6 @@ class BakalariClient:
                         self.child_id,
                         redact_child_info(child),
                         stacklevel=2,
-                        stack_info=True,
                     )
 
         self._last_tokens = self._snapshot_tokens()
@@ -418,6 +417,24 @@ class BakalariClient:
             data,
         )
         return data
+
+    @api_call(label="Noticeboard", reauth_reason="Noticeboard", default=[])
+    async def async_fetch_noticeboard(self, lib) -> list[MessageContainer]:
+        """Fetch noticeboard messages."""
+
+        _LOGGER.debug(
+            "[class=%s module=%s] Fetching noticeboard messages.",
+            self.__class__.__name__,
+            __name__,
+        )
+
+        _noticeboard = Komens(lib)
+        messages = await _noticeboard.fetch_noticeboard()
+
+        today = datetime.today().date()
+        start_of_school_year = datetime(year=today.year, month=10, day=1).date()
+
+        return messages.get_messages_by_date(date=start_of_school_year)
 
     @api_call(
         label="pemanent timetable",
