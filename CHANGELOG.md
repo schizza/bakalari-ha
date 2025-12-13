@@ -1,5 +1,12 @@
 ## Changelog
 
+## 1.6.1
+
+## 🐛 Opravy chyb
+
+**Fixed fetching date in noticeboard funct. (#93) @schizza**
+- opravena chyba datumu při stahování dat pro `Nástěnku`
+
 ## 1.6.0
 
 ## ✨ Nové funkce

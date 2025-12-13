@@ -6,14 +6,6 @@
 
 Custom komponenta pro Home Assistant, založená na [async-bakalari-api3](https://github.com/schizza/async-bakalari-api3), která umožňuje načítání data ze serveru školního systému Bakalářů a integraci s Home Assistantem.
 
-## Komponenta je prozatím v testovacím stavu, jednotlivé služby budou postupně přidávány
-
-## 🚨 Breaking changes
-
-- Verze 1.3.0 zavádí pro každý předmět jednotlivý senzor (dynamické generování podle dat z Bakalářů).
-  - původní senzor `all_marks` již drží jen metadata pro Lovelace kartu
-  - obsah metadat a co lze z tohoto senzoru získat viz níže.
-
 ## Instalace (HACS)
 
 1. V HACS → **Integrations** → menu (⋮) → **Custom repositories**
@@ -26,9 +18,16 @@ Custom komponenta pro Home Assistant, založená na [async-bakalari-api3](https:
 
 - Zprávy
   - tento senzor stahuje zprávy za poslední měsíc
+  - zprávy je možno podepisovat přímo ve Frontendu
   - TODO: všechny zprávy za školní rok - problém je v limitu pro `recorder`\
   v plánu je lokální cache, aby se "nezatěžoval" senzor
 
+- Nástěnka
+  - senzor `Nástěnka` stahuje připnuté zprávy na nástěnce
+  - data jsou stejná jako klasické zprávy, jen se stahují z jiného endpointu
+  - k zobrazení nástěnky v `Lovelace` je možné použít kartu `Zprávy` s\
+nastaveným senzorem na `Nástěnka`
+ 
 - Rozvrh
   - tento senzor stahuje rozvrh na aktuální týden +- 7 dní
 
