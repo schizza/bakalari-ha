@@ -1,3 +1,24 @@
+## v1.6.1 - 2025-12-13
+
+### 1.6.1
+
+### 🐛 Opravy chyb
+
+**Fixed fetching date in noticeboard funct. (#93) @schizza**
+
+- opravena chyba datumu při stahování dat pro `Nástěnku`
+
+
+---
+
+### 📦 Technické
+
+- Verze integrace: `v1.6.1`
+- Vyžaduje Bakalari-API: `0.10.0`
+- Minimální verze Home Assistant: `2025.9+`
+- Předchozí tag: `v1.6.0`
+- Autoři přispěli: @schizza
+
 ## Changelog
 
 ## 1.6.1
@@ -5,6 +26,7 @@
 ## 🐛 Opravy chyb
 
 **Fixed fetching date in noticeboard funct. (#93) @schizza**
+
 - opravena chyba datumu při stahování dat pro `Nástěnku`
 
 ## 1.6.0
@@ -12,6 +34,7 @@
 ## ✨ Nové funkce
 
 **Add noticeboard support to Bakalari integration (#91) @schizza**
+
 - přidána funkce `Nástěnka`
 - `Noticeboard` ze serverů stahuje stejná data jako `Komens`, lze tedy využít kartu `Zprávy` ve frontendu k zobrazení dat
 
@@ -20,17 +43,20 @@
 ## ✨ Nové funkce
 
 **Mark messages as read, improve logging (#88) @schizza**
+
 - přidán API point k podepsání známek `message_mark_as_read`
 - přidána možnost podepsat známku / známky
 - automaticky je známka podepsána na serveru školy, pokud se zavolá `service_call makr_seen`
- 
+
 ## 🐛 Opravy chyb
+
 - opravena chyba duplicit v loggeru
 - `log format` nyní ukazuje i volající funkci
 
 ## 🧹 Refaktoring / Údržba
 
 **Refactors Bakalari client handling (#89) @schizza**
+
 - centralizace `BakalariClient` na úroveň `async_setup_entry`
 - vytvoření jedné sdílené instance `BakalariClient`, aby nedocházelo k duplicitnímu vytváření instance u každého dítěte.
 - `BakalariClient` je sdílený pro všechny koordinatory
@@ -40,8 +66,8 @@
 ## 🐛 Opravy chyb
 
 **Refactor mark signing to refresh coordinator on success** (#87) @schizza
- - opravena chyba, kdy při neúspěšném `service_call` volání z API byl koordinator floodován refresh requesty
 
+- opravena chyba, kdy při neúspěšném `service_call` volání z API byl koordinator floodován refresh requesty
 
 ## v1.4.0
 
@@ -50,13 +76,16 @@
 - **Introduce `confirmed` filed to marks** (#83) @schizza
   - zavádí novou funkci pro podpis známek
   - nový atribut u známky - `confirmed`, který označuje, zda je zpráva přečtená
+  
 
 ## 🧹 Refaktoring / Údržba
 
 - **Bump API version to 0.9.0** (#84) @schizza
+  
   - zvednuta verze pro API endpoint na 0.9.0
-
+  
 - **Refactor Bakalari integration to separate coordinators** (#82) (#80) @schizza
+  
   - Rozdělení společného koordinátoru na vlasní koordinatory pro každý modul
   - seznam dětí je nyní společný pro všechny entity přes `ChildrenIndex`
   - Proveden update `async_setup_entry` pro každý koordinator zvlášť
@@ -65,8 +94,12 @@
   - Každý koordinator má nyní vlastní interval aktualizace
   - Předělány entity, senzory, websocket a services na nové koordinatory
   
+
+
 ---
+
 ## 📦 Technické
+
 - Verze integrace: `v1.4.0`
 - Vyžaduje API verzi `0.9.0+`
 - Minimální verze Home Assistant: `2025.9+`
@@ -82,12 +115,14 @@
   - každý senzor pro `Předmět` nyní má svá metadata a drží všechny známky z daného předmětu
   - senzor pro `Předmět` uvádí jako `native_value` celkový počet známek
   - zrušen limit pro 30 posledních známek v předmětu
+  
 - Nový `snapshot` API pro známky
   - agregace známek: celkové statistiky (počty, průměr, vážený průměr) a detailní rozpad dle předmětů.
   - Pomocné atributy pro jednodušší využití agregovaných dat.
   - Dynamická tvorba senzorů pro jednotlivé předměty na základě dostupných dat z `Bakalářů`
-- Zjednodušené volání API odstraněním generické funkce `_api_call` a zavedením přímých volání knihovny `async_bakalari_api.`
   
+- Zjednodušené volání API odstraněním generické funkce `_api_call` a zavedením přímých volání knihovny `async_bakalari_api.`
+
 ## 🐛 Opravy chyb
 
 - ošetřeno generování `unique_id`
@@ -109,7 +144,9 @@
   - chyby autentizace
   - obecné chyby
   - serializace `lock`
+  
 - logovací zprávy nyní mají název modulu a třídy, což zpřehlední výstup a usnadňuje dohledání původu zprávy
+
 
 ---
 
@@ -126,10 +163,12 @@
 
 - Enhances marks data and adds sensors (#71) @schizza
   - Přidán senzor všech námek pro dítě, přidána pre-subject agregace
+  
 
 ## 🧹 Refaktoring / Údržba
 
 - bump verze verze API na 0.6.0
+
 
 ---
 
@@ -173,6 +212,7 @@ Podpora migrace jedinečného ID do nového formátu založeného na ID konfigur
   - Přidává zámek, který brání souběžným požadavkům na reautorizaci pro stejné dítě.
   - Zavádí správu stavu pro žádosti o reautorizaci, sleduje, kdy bylo znovupřihlášení vyžádáno.
   - Aktualizuje úrovně logování na „debug“ pro méně ukecaný výstup za běžných okolností a zpřehledňuje logovací zprávy.
+  
 
 **Improves authentication and sensor naming** (#63) @schizza
 
@@ -183,10 +223,14 @@ Podpora migrace jedinečného ID do nového formátu založeného na ID konfigur
 ## 🧹 Refaktoring / Údržba
 
 **Improves Bakalari API handling and reauthentication** (#62) @schizza
+
 - Refaktorizace integraci Bakalářů pro zlepšení práce s API, správu tokenů.
   - Implementace centrálního wrapperu pro API volání, která zajišťuje správné zpracování autentizace a chyb.
     - Zavádí proces reautorizace a mechanismus pro resetování tokenu v případě problémů s autentizací.
     - Migrace API endpointů na nový wrapper pro jednotné zpracování chyb a autentizace
+    
+  
+
 
 ---
 
@@ -205,19 +249,27 @@ Podpora migrace jedinečného ID do nového formátu založeného na ID konfigur
 **Implementace `DeviceRegistry`** (#60) @schizza
 
 - Přidána podpora `Device Registry` pro komponentu Bakaláři – vytváří zařízení pro každý dětský účet a zpřístupňuje verze knihoven.
+  
 - zavádí nové služby pro notifikace - nově přijaté známky, vyvolání obnovení dat, atd.
+  
 - Přidán WebSocket API pro získávání známek a aktualizuje zpracování verzí.
+  
 - Opravuje https://github.com/schizza/bakalari-ha/issues/46
-
+  
 - Přidány senzory známek využívající data z koordinátoru (prozatím pouze poslední přijatá známka)
+  
 - Implementuje nové senzory pro zobrazení nových a posledních známek každého dítěte
+  
 - Staré senzory zůstávají kvůli zpětné kompatibilitě a budou odstraněny v budoucí aktualizaci po dokončení migrace.
+  
 
 ## 🧹 Refaktoring / Údržba
 
 **Rozdělení senzorů do samostatných souborů:**
+
 - Zlepšuje organizaci a udržovatelnost kódu.
 - Zachovává zpětnou kompatibilitu ponecháním starých entit.
+
 
 ---
 
@@ -234,11 +286,12 @@ Podpora migrace jedinečného ID do nového formátu založeného na ID konfigur
 ## ✨ Nové funkce
 
 Podpora Rozvrhu `Timetable module`
+
 - V API přidána možnost stažení aktuálního a permanentního rozvrhu.
 
 ## Breaking changes
 
- Karty Lovelace přesunuty do vlastního repozitáře  (schizza/bakalari-ha-frontend)
+Karty Lovelace přesunuty do vlastního repozitáře  (schizza/bakalari-ha-frontend)
 
 - smazan www/bakalari-cards.js
 - karty pro Lovelace se nyní instalují přes HACS ve vlastním repozitáři
@@ -250,11 +303,12 @@ Podpora Rozvrhu `Timetable module`
 ## 🧹 Refaktoring / Údržba
 
 - Fix: Struktura ZIP souboru pro release
-
+  
 - Chore/download counts (#34) (#35) @schizza
-
+  
   - Enable zip_release for Bakaláři HA
   - Add GitHub Actions workflow for ZIP asset release
+  
 
 Added download badges for total and latest releases.
 
@@ -263,6 +317,7 @@ Added download badges for total and latest releases.
 - Add commitish and filter-by-commitish to workflow
 - Add initial changelog file
 - Add workflow to update CHANGELOG on release
+
 
 ---
 
