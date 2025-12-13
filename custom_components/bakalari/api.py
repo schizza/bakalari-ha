@@ -434,8 +434,8 @@ class BakalariClient:
         today = datetime.today().date()
         start_of_school_year = datetime(year=today.year, month=10, day=1).date()
 
-        if messages.count_messages:
-            return messages.get_messages_by_date(date=start_of_school_year)
+        if messages.count_messages():
+            return messages.get_messages_by_date(start_of_school_year, today)
 
         return []
 
