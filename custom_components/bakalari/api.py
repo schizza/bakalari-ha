@@ -31,7 +31,7 @@ from .const import (
     RATE_LIMIT_EXCEEDED,
     ChildRecord,
 )
-from .utils import ensure_child_record, redact_child_info
+from .utils import ensure_child_record, redact_child_info, school_year_bounds
 
 _LOGGER = logging.getLogger(__name__)
 _fetch_lock: asyncio.Lock = asyncio.Lock()
@@ -394,8 +394,7 @@ class BakalariClient:
 
         today = datetime.today().date()
 
-        # TODO: change to actual year, while sensors are refactored!
-        start_of_school_year = datetime(year=today.year, month=10, day=1).date()
+        start_of_school_year, _ = school_year_bounds(today)
 
         _LOGGER.debug(
             "[class=%s module=%s] Fetching messages for child_id=%s",
@@ -432,7 +431,7 @@ class BakalariClient:
         messages = await _noticeboard.fetch_noticeboard()
 
         today = datetime.today().date()
-        start_of_school_year = datetime(year=today.year, month=10, day=1).date()
+        start_of_school_year, _ = school_year_bounds(today)
 
         if messages.count_messages():
             return messages.get_messages_by_date(start_of_school_year, today)

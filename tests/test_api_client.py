@@ -1,6 +1,8 @@
 """Test API client."""
 
 import asyncio
+from datetime import date as dt_date
+from datetime import datetime as dt_datetime
 from types import SimpleNamespace
 from typing import Any
 from unittest.mock import AsyncMock
@@ -9,6 +11,66 @@ import pytest
 
 import custom_components.bakalari.api as api_mod
 from custom_components.bakalari.api import BakalariClient
+
+
+class _FakeKomensMessages:
+    """Minimal stub for Komens.messages used by async_get_messages."""
+
+    def __init__(self) -> None:
+        self.calls: list[tuple[dt_date, dt_date]] = []
+
+    def get_messages_by_date(self, start: dt_date, end: dt_date):
+        self.calls.append((start, end))
+        return ["m1"]
+
+
+class _FakeKomens:
+    """Minimal stub for Komens used by async_get_messages/async_fetch_noticeboard."""
+
+    def __init__(
+        self,
+        lib: Any,
+        *,
+        with_noticeboard: bool = True,
+        noticeboard_container: Any | None = None,
+    ) -> None:
+        self._with_noticeboard = with_noticeboard
+        self.messages = _FakeKomensMessages()
+        # Keep this intentionally loose to satisfy type-checkers in tests.
+        self.noticeboard_container: Any = noticeboard_container or SimpleNamespace()
+
+    async def fetch_messages(self) -> None:
+        return None
+
+    async def fetch_noticeboard(self):
+        return self.noticeboard_container
+
+
+async def _direct_call_via_api_call_wrapper(
+    client: BakalariClient,
+    method_name: str,
+    *,
+    lib: Any,
+):
+    """Invoke a @api_call-decorated method by stubbing client._api_call to run the inner callable_fn.
+
+    This avoids needing a real hass/config entry, while still exercising the wrapper path.
+    """
+
+    async def _api_call_stub(
+        *,
+        label: str,
+        reauth_reason: str,
+        default: Any,
+        use_lock: bool,
+        callable_fn,
+    ):
+        return await callable_fn(lib)
+
+    client._api_call = _api_call_stub  # pyright: ignore[reportAttributeAccessIssue]
+
+    method = getattr(client, method_name)
+    return await method()
 
 
 @pytest.mark.asyncio
@@ -116,6 +178,211 @@ async def test_api_call_auth_error_triggers_reauth(monkeypatch: pytest.MonkeyPat
     reset_mock.assert_awaited()
     reauth_mock.assert_awaited()
     save_mock.assert_awaited()
+
+
+@pytest.mark.asyncio
+async def test_async_get_messages_filters_from_start_of_school_year_edge_before_start(
+    monkeypatch: pytest.MonkeyPatch,
+):
+    """Messages should be fetched from start of the current school year (edge: ref day before 1.9.)."""
+
+    # Arrange
+    client = BakalariClient(hass=object(), entry=object(), child_id="c1")  # pyright: ignore[]
+
+    # Fix "today" to before Sep 1 => school year start should be previous year 9/1.
+    fixed_today = dt_date(2024, 8, 31)
+
+    class _FixedDatetime:
+        @classmethod
+        def today(cls):
+            return dt_datetime.combine(fixed_today, dt_datetime.min.time())
+
+    monkeypatch.setattr(api_mod, "datetime", _FixedDatetime, raising=True)
+
+    fake_komens = _FakeKomens(lib=None)
+
+    def _komens_factory(lib: Any):
+        return fake_komens
+
+    monkeypatch.setattr(api_mod, "Komens", _komens_factory, raising=True)
+
+    # Act (go through @api_call wrapper, but stub _api_call to execute callable_fn directly)
+    res = await _direct_call_via_api_call_wrapper(
+        client,
+        "async_get_messages",
+        lib=SimpleNamespace(),
+    )
+
+    # Assert
+    assert res == ["m1"]
+    assert fake_komens.messages.calls == [(dt_date(2023, 9, 1), fixed_today)]
+
+
+@pytest.mark.asyncio
+async def test_async_get_messages_filters_from_start_of_school_year_edge_on_start_day(
+    monkeypatch: pytest.MonkeyPatch,
+):
+    """Messages should be fetched from 1.9. when today is exactly 1.9."""
+
+    # Arrange
+    client = BakalariClient(hass=object(), entry=object(), child_id="c1")  # pyright: ignore[]
+
+    fixed_today = dt_date(2024, 9, 1)
+
+    class _FixedDatetime:
+        @classmethod
+        def today(cls):
+            return dt_datetime.combine(fixed_today, dt_datetime.min.time())
+
+    monkeypatch.setattr(api_mod, "datetime", _FixedDatetime, raising=True)
+
+    fake_komens = _FakeKomens(lib=None)
+
+    def _komens_factory(lib: Any):
+        return fake_komens
+
+    monkeypatch.setattr(api_mod, "Komens", _komens_factory, raising=True)
+
+    # Act (go through @api_call wrapper, but stub _api_call to execute callable_fn directly)
+    res = await _direct_call_via_api_call_wrapper(
+        client,
+        "async_get_messages",
+        lib=SimpleNamespace(),
+    )
+
+    # Assert
+    assert res == ["m1"]
+    assert fake_komens.messages.calls == [(dt_date(2024, 9, 1), fixed_today)]
+
+
+@pytest.mark.asyncio
+async def test_async_fetch_noticeboard_filters_when_messages_present_edge_before_start(
+    monkeypatch: pytest.MonkeyPatch,
+):
+    """Noticeboard should be date-filtered from school-year start when it has messages (edge: before 1.9.)."""
+
+    # Arrange
+    client = BakalariClient(hass=object(), entry=object(), child_id="c1")  # pyright: ignore[]
+    fixed_today = dt_date(2024, 8, 31)
+
+    class _FixedDatetime:
+        @classmethod
+        def today(cls):
+            return dt_datetime.combine(fixed_today, dt_datetime.min.time())
+
+    monkeypatch.setattr(api_mod, "datetime", _FixedDatetime, raising=True)
+
+    # container returned by fetch_noticeboard()
+    calls: list[tuple[dt_date, dt_date]] = []
+
+    class _NoticeboardContainer:
+        def count_messages(self) -> int:
+            return 1
+
+        def get_messages_by_date(self, start: dt_date, end: dt_date):
+            calls.append((start, end))
+            return ["n1"]
+
+    fake_komens = _FakeKomens(lib=None, noticeboard_container=_NoticeboardContainer())
+
+    def _komens_factory(lib: Any):
+        return fake_komens
+
+    monkeypatch.setattr(api_mod, "Komens", _komens_factory, raising=True)
+
+    # Act (go through @api_call wrapper, but stub _api_call to execute callable_fn directly)
+    res = await _direct_call_via_api_call_wrapper(
+        client,
+        "async_fetch_noticeboard",
+        lib=SimpleNamespace(),
+    )
+
+    # Assert
+    assert res == ["n1"]
+    assert calls == [(dt_date(2023, 9, 1), fixed_today)]
+
+
+@pytest.mark.asyncio
+async def test_async_get_messages_filters_from_start_of_school_year_edge_jan_1(
+    monkeypatch: pytest.MonkeyPatch,
+):
+    """Jan 1 must fall into school year that started previous Sep 1 (1.1.2026 -> 1.9.2025)."""
+
+    # Arrange
+    client = BakalariClient(hass=object(), entry=object(), child_id="c1")  # pyright: ignore[]
+
+    fixed_today = dt_date(2026, 1, 1)
+
+    class _FixedDatetime:
+        @classmethod
+        def today(cls):
+            return dt_datetime.combine(fixed_today, dt_datetime.min.time())
+
+    monkeypatch.setattr(api_mod, "datetime", _FixedDatetime, raising=True)
+
+    fake_komens = _FakeKomens(lib=None)
+
+    def _komens_factory(lib: Any):
+        return fake_komens
+
+    monkeypatch.setattr(api_mod, "Komens", _komens_factory, raising=True)
+
+    # Act (go through @api_call wrapper, but stub _api_call to execute callable_fn directly)
+    res = await _direct_call_via_api_call_wrapper(
+        client,
+        "async_get_messages",
+        lib=SimpleNamespace(),
+    )
+
+    # Assert
+    assert res == ["m1"]
+    assert fake_komens.messages.calls == [(dt_date(2025, 9, 1), fixed_today)]
+
+
+@pytest.mark.asyncio
+async def test_async_fetch_noticeboard_returns_empty_when_no_messages(
+    monkeypatch: pytest.MonkeyPatch,
+):
+    """Noticeboard should return [] when count_messages() is 0 (no filtering call)."""
+
+    # Arrange
+    client = BakalariClient(hass=object(), entry=object(), child_id="c1")  # pyright: ignore[]
+    fixed_today = dt_date(2024, 10, 10)
+
+    class _FixedDatetime:
+        @classmethod
+        def today(cls):
+            return dt_datetime.combine(fixed_today, dt_datetime.min.time())
+
+    monkeypatch.setattr(api_mod, "datetime", _FixedDatetime, raising=True)
+
+    calls: list[tuple[dt_date, dt_date]] = []
+
+    class _NoticeboardContainer:
+        def count_messages(self) -> int:
+            return 0
+
+        def get_messages_by_date(self, start: dt_date, end: dt_date):
+            calls.append((start, end))
+            return ["should-not-be-returned"]
+
+    fake_komens = _FakeKomens(lib=None, noticeboard_container=_NoticeboardContainer())
+
+    def _komens_factory(lib: Any):
+        return fake_komens
+
+    monkeypatch.setattr(api_mod, "Komens", _komens_factory, raising=True)
+
+    # Act (go through @api_call wrapper, but stub _api_call to execute callable_fn directly)
+    res = await _direct_call_via_api_call_wrapper(
+        client,
+        "async_fetch_noticeboard",
+        lib=SimpleNamespace(),
+    )
+
+    # Assert
+    assert res == []
+    assert calls == []
 
 
 @pytest.mark.asyncio
