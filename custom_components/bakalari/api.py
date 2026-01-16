@@ -394,7 +394,6 @@ class BakalariClient:
 
         today = datetime.today().date()
 
-        # TODO: change to actual year, while sensors are refactored!
         start_of_school_year, _ = school_year_bounds(today)
 
         _LOGGER.debug(
