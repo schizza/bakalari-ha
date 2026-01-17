@@ -40,6 +40,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         self._schools: Schools | None = None
         self._loading_task = None
         self._reauth_data: dict | None = None
+        self._loading_error: str | None = None
 
     async def _load_schools(self) -> bool:
         """Load schools from cache or fetch new ones from server."""
@@ -63,6 +64,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     self.__class__.__name__,
                     __name__,
                 )
+                self._loading_error = "cannot_connect"
                 return False
 
             await schools_storage.async_save(schools_cache.school_list)
@@ -71,16 +73,23 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 self.__class__.__name__,
                 __name__,
             )
-        else:
-            _LOGGER.info(
-                "[class=%s module=%s] Schools loaded from cache.",
-                self.__class__.__name__,
-                __name__,
-            )
-        return False
+            return True
+
+        _LOGGER.info(
+            "[class=%s module=%s] Schools loaded from cache.",
+            self.__class__.__name__,
+            __name__,
+        )
+        return True
 
     async def async_step_user(self, user_input=None) -> config_entries.ConfigFlowResult:
         """Handle the initial step."""
+
+        # After progress finishes, HA will re-enter this step; at that point we can
+        # either continue or show an error with a retry button.
+        if user_input is not None and user_input.get("retry"):
+            self._loading_task = None
+            self._loading_error = None
 
         if self._loading_task is None:
             self._loading_task = self.hass.async_create_task(self._load_schools())
@@ -89,6 +98,34 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 step_id="user",
                 progress_action="loading_schools",
                 progress_task=self._loading_task,
+            )
+
+        # Task exists -> either still running or already finished.
+        if not self._loading_task.done():
+            return self.async_show_progress(
+                step_id="user",
+                progress_action="loading_schools",
+                progress_task=self._loading_task,
+            )
+
+        try:
+            ok = bool(self._loading_task.result())
+        except Exception:  # noqa: BLE001 - surface as HA form error
+            _LOGGER.exception(
+                "[class=%s module=%s] Unexpected error while loading schools",
+                self.__class__.__name__,
+                __name__,
+            )
+            ok = False
+            self._loading_error = "unknown"
+
+        if not ok:
+            # Reset task so user can retry.
+            self._loading_task = None
+            return self.async_show_form(
+                step_id="user",
+                data_schema=vol.Schema({vol.Optional("retry", default=True): bool}),
+                errors={"base": self._loading_error or "cannot_connect"},
             )
 
         return self.async_show_progress_done(next_step_id="complete")

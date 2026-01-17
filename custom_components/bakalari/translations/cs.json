@@ -4,7 +4,8 @@
     "error": {
       "loading_failed": "Nepodařilo se načíst školy z serveru ani s cache!",
       "invalid_auth": "Neplatné přihlašovací údaje!",
-      "cannot_connect": "Nelze se připojit k serveru!"
+      "cannot_connect": "Nelze se připojit k serveru!",
+      "unknown": "Neznámá chyba."
     },
     "abort": {
       "reauth_entry_not_found": "Nepodařilo se najít dítě s daným přihlašovacím jménem.",
