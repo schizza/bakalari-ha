@@ -1,5 +1,17 @@
 ## Changelog
 
+## 1.6.2
+
+## 🐛 Opravy chyb
+
+**Fix school year bounds (#97) @schizza**
+
+- Opravena chyba získávání počátečního data školního roku pro `Nástěnku` a `Zprávy`
+
+**Fixed issue when cached schools will hang initialization. (#98) @schizza**
+
+- Opravena chyba, kdy při inicializaci komponenty mohlo dojít k zasekuní na načítací obrazovce
+
 ## 1.6.1
 
 ## 🐛 Opravy chyb
