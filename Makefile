@@ -10,8 +10,8 @@ RUFF   := $(PYTHON) -m ruff
 PYTEST := $(PYTHON) -m pytest
 
 # Verze / cesty
-HA_VERSION := 2025.9.4
-BAKALARI_VERSION := 0.10.0
+HA_VERSION := 2026.2.3
+BAKALARI_VERSION := 0.10.2
 HA_CONFIG := ./config
 COMPONENT_PATH := custom_components/bakalari
 
@@ -19,7 +19,7 @@ COMPONENT_PATH := custom_components/bakalari
 HASSFEST_CORE_DIR := .ha-core
 HASSFEST_REPO := https://github.com/home-assistant/core
 # ev. $(HA_VERSION)
-HASSFEST_REF ?= dev
+HASSFEST_REF ?= $(HA_VERSION)
 
 # Prostředí
 export VIRTUAL_ENV_DISABLE_PROMPT=1
@@ -111,15 +111,17 @@ hassfest-setup:
 	@if ! command -v git >/dev/null 2>&1; then \
 	  echo "❌ git není dostupný v PATH"; exit 1; \
 	fi
-	@if [ ! -d "$(HASSFEST_CORE_DIR)/.git" ]; then \
+	@set -euo pipefail; \
+	if [ ! -d "$(HASSFEST_CORE_DIR)/.git" ]; then \
 	  echo "📥 Cloning Home Assistant core ($(HASSFEST_REF))..."; \
 	  git clone --depth 1 --branch $(HASSFEST_REF) $(HASSFEST_REPO) $(HASSFEST_CORE_DIR); \
 	else \
 	  echo "🔄 Updating Home Assistant core ($(HASSFEST_REF))..."; \
 	  git -C $(HASSFEST_CORE_DIR) fetch --depth 1 origin $(HASSFEST_REF); \
-	  git -C $(HASSFEST_CORE_DIR) checkout -q $(HASSFEST_REF) || true; \
-	  git -C $(HASSFEST_CORE_DIR) reset --hard -q origin/$(HASSFEST_REF) || true; \
-	fi
+	  git -C $(HASSFEST_CORE_DIR) reset --hard FETCH_HEAD; \
+	  git -C $(HASSFEST_CORE_DIR) clean -fdx; \
+	fi; \
+	echo "✅ .ha-core @ $$(git -C $(HASSFEST_CORE_DIR) rev-parse --short HEAD)"
 
 hassfest-local: hassfest-setup
 	PYTHONPATH=$(HASSFEST_CORE_DIR) $(PYTHON) -m script.hassfest --integration-path $(COMPONENT_PATH)
