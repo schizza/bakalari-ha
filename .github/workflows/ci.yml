@@ -23,8 +23,8 @@ jobs:
           pip install pytest pytest-asyncio pytest-homeassistant-custom-component ruff basedpyright
           pip install -e .
           # HA runtime pro testy (minimální):
-          pip install homeassistant==2025.9.4
-          pip install async-bakalari-api==0.10.0
+          pip install homeassistant==2026.2.3
+          pip install async-bakalari-api==0.10.2
       - name: Ruff (lint)
         run: ruff check .
       - name: Ruff (format)
