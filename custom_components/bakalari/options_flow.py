@@ -17,6 +17,7 @@ from .const import (
     CONF_SURNAME,
     CONF_USERNAME,
     SCHOOLS_CACHE_FILE,
+    SCHOOLS_CACHE_MAX_AGE_DAYS,
     ChildRecord,
 )
 from .utils import child_from_raw, ensure_children_dict
@@ -68,6 +69,7 @@ class BakalariOptionsFlow(config_entries.OptionsFlow):
             "add": "Přidat nové dítě",
             "edit": "Upravit dítě",
             "delete": "Smazat dítě",
+            "refresh_schools": "Obnovit seznam škol",
         }
 
         data_schema = vol.Schema({vol.Required("action"): vol.In(actions)})
@@ -79,8 +81,47 @@ class BakalariOptionsFlow(config_entries.OptionsFlow):
                 return await self.async_step_select_child_to_edit()
             if action == "delete":
                 return await self.async_step_select_child_to_delete()
+            if action == "refresh_schools":
+                return await self.async_step_refresh_schools()
 
         return self.async_show_form(step_id="init", data_schema=data_schema)
+
+    async def async_step_refresh_schools(self, user_input=None):
+        """Refresh schools cache from the server."""
+
+        schools_store = Store(self.hass, 1, SCHOOLS_CACHE_FILE)
+        try:
+            async with Bakalari() as api:
+                fresh = await api.schools_list()
+            if fresh is not None:
+                await schools_store.async_save(fresh.school_list)
+                await self.create_schools_instance()
+                return self.async_show_form(
+                    step_id="init",
+                    data_schema=vol.Schema(
+                        {vol.Required("action"): vol.In({
+                            "add": "Přidat nové dítě",
+                            "edit": "Upravit dítě",
+                            "delete": "Smazat dítě",
+                            "refresh_schools": "Obnovit seznam škol",
+                        })}
+                    ),
+                    errors={"base": "schools_refreshed"},
+                )
+        except Exception:
+            pass
+        return self.async_show_form(
+            step_id="init",
+            data_schema=vol.Schema(
+                {vol.Required("action"): vol.In({
+                    "add": "Přidat nové dítě",
+                    "edit": "Upravit dítě",
+                    "delete": "Smazat dítě",
+                    "refresh_schools": "Obnovit seznam škol",
+                })}
+            ),
+            errors={"base": "cannot_connect"},
+        )
 
     async def async_step_select_child_to_edit(self, user_input=None):
         """Step to select child for editing."""
