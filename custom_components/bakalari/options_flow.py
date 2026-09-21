@@ -173,19 +173,23 @@ class BakalariOptionsFlow(config_entries.OptionsFlow):
 
         credentials: Credentials | None = None
 
+        registry_url = self._schools.get_url(self._new_child[CONF_SCHOOL])  # pyright: ignore[reportOptionalSubscript]
+        registry_url = (
+            registry_url if isinstance(registry_url, str) and registry_url else ""
+        )
+
         data_schema = vol.Schema(
             {
                 vol.Required("username"): str,
                 vol.Required("password"): str,
+                vol.Optional("custom_server", default=""): str,
             }
         )
 
         # we have login data
         if user_input is not None:
-            school_url = self._schools.get_url(self._new_child[CONF_SCHOOL])  # pyright: ignore[reportOptionalSubscript]
-            school_url = (
-                school_url if isinstance(school_url, str) and school_url else ""
-            )
+            custom = (user_input.get("custom_server") or "").strip()
+            school_url = custom if custom else registry_url
 
             try:
                 async with Bakalari(school_url) as api:
@@ -202,6 +206,7 @@ class BakalariOptionsFlow(config_entries.OptionsFlow):
                     step_id="login",
                     data_schema=data_schema,
                     errors={"base": "invalid_login"},
+                    description_placeholders={"registry_url": registry_url},
                 )
 
             child_id, child = child_from_raw(self._new_child)
@@ -212,7 +217,11 @@ class BakalariOptionsFlow(config_entries.OptionsFlow):
             )
 
         # we have to login
-        return self.async_show_form(step_id="login", data_schema=data_schema)
+        return self.async_show_form(
+            step_id="login",
+            data_schema=data_schema,
+            description_placeholders={"registry_url": registry_url},
+        )
 
     async def async_step_edit_child(self, user_input=None):
         """Step to edit an existing child."""
