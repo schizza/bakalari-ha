@@ -76,6 +76,14 @@
           "username": "Uživatelské jméno",
           "password": "Heslo"
         }
+      },
+      "reauth_school": {
+        "title": "Přihlášení k nové škole",
+        "description": "Škola byla změněna na {school}. Zadejte přihlašovací údaje pro nový server.",
+        "data": {
+          "username": "Uživatelské jméno",
+          "password": "Heslo"
+        }
       }
     }
   }
