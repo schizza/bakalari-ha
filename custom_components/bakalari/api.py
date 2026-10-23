@@ -8,7 +8,7 @@ from collections.abc import Awaitable, Callable
 from datetime import date, datetime
 import logging
 from time import time
-from typing import Any, Literal, TypeVar
+from typing import Any, Literal, TypeVar, cast
 
 from async_bakalari_api import Bakalari, Komens, Marks, Timetable
 from async_bakalari_api.datastructure import Credentials
@@ -22,6 +22,7 @@ from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from .const import (
     CONF_ACCESS_TOKEN,
     CONF_CHILDREN,
+    CONF_CREDENTIALS,
     CONF_NAME,
     CONF_REFRESH_TOKEN,
     CONF_SERVER,
@@ -31,7 +32,7 @@ from .const import (
     RATE_LIMIT_EXCEEDED,
     ChildRecord,
 )
-from .utils import ensure_child_record, redact_child_info, school_year_bounds
+from .utils import redact_child_info, school_year_bounds
 
 _LOGGER = logging.getLogger(__name__)
 _fetch_lock: asyncio.Lock = asyncio.Lock()
@@ -176,7 +177,13 @@ class BakalariClient:
         """Get the current child record."""
 
         entry = self._current_entry()
-        return entry.options[CONF_CHILDREN][self.child_id]
+        return cast(
+            ChildRecord,
+            {
+                **entry.options[CONF_CHILDREN][self.child_id],
+                **entry.data.get(CONF_CREDENTIALS, {}).get(self.child_id, {}),
+            },
+        )
 
     def _validate_child_tokens(self, child: ChildRecord) -> bool:
         """Validate child tokens."""
@@ -248,15 +255,15 @@ class BakalariClient:
         """Reset stored tokens in entry and drop API client to force re-login."""
         async with _entry_update_lock:
             entry = self._current_entry()
-            new_children = dict(entry.options[CONF_CHILDREN])
-            child: ChildRecord = ensure_child_record(new_children, self.child_id)
-            child[CONF_ACCESS_TOKEN] = ""
-            child[CONF_REFRESH_TOKEN] = ""
-            new_children[self.child_id] = child
-
-            self.hass.config_entries.async_update_entry(
-                entry, options={**entry.options, CONF_CHILDREN: new_children}
-            )
+            if self.child_id in entry.options.get(CONF_CHILDREN, {}):
+                credentials = dict(entry.data.get(CONF_CREDENTIALS, {}))
+                credentials[self.child_id] = {
+                    CONF_ACCESS_TOKEN: "",
+                    CONF_REFRESH_TOKEN: "",
+                }
+                self.hass.config_entries.async_update_entry(
+                    entry, data={**entry.data, CONF_CREDENTIALS: credentials}
+                )
         self._last_tokens = None
         self.lib = None
         _LOGGER.warning(
@@ -364,16 +371,17 @@ class BakalariClient:
             cred = self.lib.credentials  # use current credentials
 
             entry = self._current_entry()
-            new_children = dict(entry.options.get(CONF_CHILDREN, {}))
-
-            child: ChildRecord = ensure_child_record(new_children, self.child_id)
-
-            child[CONF_ACCESS_TOKEN] = cred.access_token or ""
-            child[CONF_REFRESH_TOKEN] = cred.refresh_token or ""
-            new_children[self.child_id] = child
-
+            if self.child_id not in entry.options.get(CONF_CHILDREN, {}):
+                # The child was removed while a fetch was in flight.
+                return
+            credentials = dict(entry.data.get(CONF_CREDENTIALS, {}))
+            tokens = {
+                CONF_ACCESS_TOKEN: cred.access_token or "",
+                CONF_REFRESH_TOKEN: cred.refresh_token or "",
+            }
+            credentials[self.child_id] = tokens
             self.hass.config_entries.async_update_entry(
-                entry, options={**entry.options, CONF_CHILDREN: new_children}
+                entry, data={**entry.data, CONF_CREDENTIALS: credentials}
             )
             self._last_tokens = (cred.access_token or "", cred.refresh_token or "")
             _LOGGER.debug(
@@ -381,7 +389,7 @@ class BakalariClient:
                 self.__class__.__name__,
                 __name__,
                 self.child_id,
-                redact_child_info(child),
+                redact_child_info(tokens),
             )
         await self._clear_reauth_flag()
 
