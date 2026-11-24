@@ -299,7 +299,7 @@ Doporučení:
 ## Požadavky
 
 - Home Assistant `2026.2.3+`
-- PyPI: `async-bakalari-api==0.10.2`
+- PyPI: `async-bakalari-api==0.10.5`
 
 ## Licence
 

@@ -11,7 +11,7 @@ PYTEST := $(PYTHON) -m pytest
 
 # Verze / cesty
 HA_VERSION := 2026.2.3
-BAKALARI_VERSION := 0.10.2
+BAKALARI_VERSION := 0.10.5
 HA_CONFIG := ./config
 COMPONENT_PATH := custom_components/bakalari
 
@@ -70,9 +70,11 @@ install: venv
 	$(PYTHON) -m pip install \
 		ruff pre-commit \
 		pytest pytest-asyncio pytest-homeassistant-custom-component \
-		async-bakalari-api==$(BAKALARI_VERSION) \
 		bump-my-version PyTurboJPEG \
 		basedpyright
+	# Knihovna pod stejnými piny, pod jakými ji instaluje HA (package_constraints.txt)
+	PIP_CONSTRAINT="$$($(PYTHON) -c 'import homeassistant, os; print(os.path.join(os.path.dirname(homeassistant.__file__), "package_constraints.txt"))')" \
+		$(PYTHON) -m pip install async-bakalari-api==$(BAKALARI_VERSION)
 	$(MAKE) hassfest-setup
 
 update:
