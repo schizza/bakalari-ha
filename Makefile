@@ -11,6 +11,9 @@ PYTEST := $(PYTHON) -m pytest
 
 # Verze / cesty
 HA_VERSION := 2026.2.3
+# Release pytest-homeassistant-custom-component, který pinuje homeassistant==$(HA_VERSION).
+# Měnit spolu s HA_VERSION.
+PHCC_VERSION := 0.13.316
 BAKALARI_VERSION := 0.10.5
 HA_CONFIG := ./config
 COMPONENT_PATH := custom_components/bakalari
@@ -64,12 +67,15 @@ venv:
 
 install: venv
 	$(PYTHON) -m pip install --upgrade pip wheel
-	# Pinované jádro Home Assistantu
-	$(PYTHON) -m pip install "homeassistant==$(HA_VERSION)"
+	# Pinované jádro Home Assistantu spolu s testovacím pluginem, který pinuje
+	# přesnou verzi HA; v jednom kroku, aby nesoulad skončil chybou resolveru.
+	$(PYTHON) -m pip install \
+		"homeassistant==$(HA_VERSION)" \
+		"pytest-homeassistant-custom-component==$(PHCC_VERSION)"
 	$(PYTHON) -m pip install -e .
 	$(PYTHON) -m pip install \
 		ruff pre-commit \
-		pytest pytest-asyncio pytest-homeassistant-custom-component \
+		pytest pytest-asyncio \
 		bump-my-version PyTurboJPEG \
 		basedpyright
 	# Knihovna pod stejnými piny, pod jakými ji instaluje HA (package_constraints.txt)
