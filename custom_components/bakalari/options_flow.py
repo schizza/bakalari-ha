@@ -10,8 +10,11 @@ from homeassistant.helpers.storage import Store
 import voluptuous as vol
 
 from .const import (
+    CONF_ACCESS_TOKEN,
     CONF_CHILDREN,
+    CONF_CREDENTIALS,
     CONF_NAME,
+    CONF_REFRESH_TOKEN,
     CONF_SCHOOL,
     CONF_SERVER,
     CONF_SURNAME,
@@ -22,7 +25,7 @@ from .const import (
 from .utils import child_from_raw, ensure_children_dict
 
 
-class BakalariOptionsFlow(config_entries.OptionsFlow):
+class BakalariOptionsFlow(config_entries.OptionsFlowWithReload):
     """Options flow for Bakalari.
 
     We should enable add/modify/delete children in this flow.
@@ -157,7 +160,6 @@ class BakalariOptionsFlow(config_entries.OptionsFlow):
                     url if isinstance(url, str) and url else ""
                 )
 
-                self.async_create_entry(title="", data={CONF_CHILDREN: self.children})
                 return await self.async_step_edit_child()
 
             self._new_child[CONF_SCHOOL] = user_input[CONF_SCHOOL]  # pyright: ignore[reportOptionalSubscript]
@@ -205,10 +207,29 @@ class BakalariOptionsFlow(config_entries.OptionsFlow):
                 )
 
             child_id, child = child_from_raw(self._new_child)
+            tokens = {
+                CONF_ACCESS_TOKEN: child.pop(CONF_ACCESS_TOKEN, ""),
+                CONF_REFRESH_TOKEN: child.pop(CONF_REFRESH_TOKEN, ""),
+            }
             self.children[child_id] = child
+            entry = self.config_entry
+            self.hass.config_entries.async_update_entry(
+                entry,
+                data={
+                    **entry.data,
+                    CONF_CREDENTIALS: {
+                        **entry.data.get(CONF_CREDENTIALS, {}),
+                        child_id: tokens,
+                    },
+                },
+            )
 
+            # Logging in again can replace tokens without changing child options.
+            if entry.options.get(CONF_CHILDREN, {}) == self.children:
+                self.hass.config_entries.async_schedule_reload(entry.entry_id)
             return self.async_create_entry(
-                title="", data={CONF_CHILDREN: self.children}
+                title="",
+                data={**entry.options, CONF_CHILDREN: self.children},
             )
 
         # we have to login
@@ -250,11 +271,11 @@ class BakalariOptionsFlow(config_entries.OptionsFlow):
 
             if not user_input.get(school_label, False):
                 return self.async_create_entry(
-                    title="", data={CONF_CHILDREN: self.children}
+                    title="",
+                    data={**self.config_entry.options, CONF_CHILDREN: self.children},
                 )
 
             self._edit_school_for = child_id
-            self.async_create_entry(title="", data={CONF_CHILDREN: self.children})
             return await self.async_step_select_city()
 
         return self.async_show_form(step_id="edit_child", data_schema=data_schema)
@@ -272,9 +293,19 @@ class BakalariOptionsFlow(config_entries.OptionsFlow):
         if user_input is not None:
             child_id = user_input["child_id"]
             self.children.pop(child_id)
-            return self.async_create_entry(
-                title="", data={CONF_CHILDREN: self.children}
+            entry = self.config_entry
+            credentials = dict(entry.data.get(CONF_CREDENTIALS, {}))
+            credentials.pop(child_id, None)
+            options = {**entry.options, CONF_CHILDREN: self.children}
+            # Remove the child and its tokens in one write. The flow manager
+            # then finds the options unchanged, so schedule the reload here.
+            self.hass.config_entries.async_update_entry(
+                entry,
+                data={**entry.data, CONF_CREDENTIALS: credentials},
+                options=options,
             )
+            self.hass.config_entries.async_schedule_reload(entry.entry_id)
+            return self.async_create_entry(title="", data=options)
 
         return self.async_show_form(
             step_id="select_child_to_delete", data_schema=data_schema

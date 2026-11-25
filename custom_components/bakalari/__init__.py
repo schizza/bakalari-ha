@@ -16,12 +16,22 @@ import voluptuous as vol
 
 from .api import BakalariClient
 from .children import ChildrenIndex
-from .const import DOMAIN, MANUFACTURER, MODEL, PLATFORMS, SW_VERSION
+from .const import (
+    CONF_ACCESS_TOKEN,
+    CONF_CHILDREN,
+    CONF_CREDENTIALS,
+    CONF_REFRESH_TOKEN,
+    DOMAIN,
+    MANUFACTURER,
+    MODEL,
+    PLATFORMS,
+    SW_VERSION,
+)
 from .coordinator_marks import BakalariMarksCoordinator
 from .coordinator_messages import BakalariMessagesCoordinator
 from .coordinator_noticeboard import BakalariNoticeboardCoordinator
 from .coordinator_timetable import BakalariTimetableCoordinator
-from .utils import device_ident
+from .utils import device_ident, ensure_children_dict
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -272,13 +282,28 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     _register_websocket(hass, entry)
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
-    entry.async_on_unload(entry.add_update_listener(_async_update_listener))
     return True
 
 
-async def _async_update_listener(hass: HomeAssistant, entry: ConfigEntry) -> None:
-    """Handle options updates by reloading the entry."""
-    await hass.config_entries.async_reload(entry.entry_id)
+async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+    """Move tokens out of options while retaining child configuration."""
+    if entry.version > 2:
+        return False
+    if entry.version == 1:
+        children = ensure_children_dict(entry.options.get(CONF_CHILDREN, {}))
+        credentials = {}
+        for child_id, child in children.items():
+            credentials[child_id] = {
+                CONF_ACCESS_TOKEN: child.pop(CONF_ACCESS_TOKEN, ""),
+                CONF_REFRESH_TOKEN: child.pop(CONF_REFRESH_TOKEN, ""),
+            }
+        hass.config_entries.async_update_entry(
+            entry,
+            data={**entry.data, CONF_CREDENTIALS: credentials},
+            options={**entry.options, CONF_CHILDREN: children},
+            version=2,
+        )
+    return True
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:

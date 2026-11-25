@@ -17,13 +17,12 @@ import voluptuous as vol
 from .const import (
     CONF_ACCESS_TOKEN,
     CONF_CHILDREN,
+    CONF_CREDENTIALS,
     CONF_REFRESH_TOKEN,
     DOMAIN,
     SCHOOLS_CACHE_FILE,
-    ChildRecord,
 )
 from .options_flow import BakalariOptionsFlow
-from .utils import ensure_child_record
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -31,7 +30,7 @@ _LOGGER = logging.getLogger(__name__)
 class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """Handle a config flow for Bakalari."""
 
-    VERSION = 1
+    VERSION = 2
 
     def __init__(self) -> None:
         """Initialize the config flow."""
@@ -136,7 +135,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         """Handle the completion step."""
 
         return self.async_create_entry(
-            title="Bakaláři", data={}, options={"children": []}
+            title="Bakaláři", data={CONF_CREDENTIALS: {}}, options={CONF_CHILDREN: {}}
         )
 
     async def async_step_reauth(
@@ -194,23 +193,20 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 errors={"base": "cannot_connect"},
             )
 
-        # Update entry options with new tokens
         entry = self.hass.config_entries.async_get_entry(entry_id)
         if entry is None:
             return self.async_abort(reason="reauth_entry_not_found")
+        if child_id not in entry.options.get(CONF_CHILDREN, {}):
+            return self.async_abort(reason="reauth_missing_context")
 
-        children = dict(entry.options.get(CONF_CHILDREN, {}))
-        child: ChildRecord = ensure_child_record(children, child_id)
-
-        child[CONF_ACCESS_TOKEN] = credentials.access_token or ""
-        child[CONF_REFRESH_TOKEN] = credentials.refresh_token or ""
-        children[child_id] = child
-
-        self.hass.config_entries.async_update_entry(
-            entry, options={**entry.options, CONF_CHILDREN: children}
+        stored_credentials = dict(entry.data.get(CONF_CREDENTIALS, {}))
+        stored_credentials[child_id] = {
+            CONF_ACCESS_TOKEN: credentials.access_token or "",
+            CONF_REFRESH_TOKEN: credentials.refresh_token or "",
+        }
+        return self.async_update_reload_and_abort(
+            entry, data_updates={CONF_CREDENTIALS: stored_credentials}
         )
-
-        return self.async_abort(reason="reauth_successful")
 
     @staticmethod
     @callback

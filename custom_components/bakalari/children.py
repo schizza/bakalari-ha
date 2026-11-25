@@ -4,10 +4,8 @@ from dataclasses import dataclass
 import logging
 
 from .const import (
-    CONF_ACCESS_TOKEN,
     CONF_CHILDREN,
     CONF_NAME,
-    CONF_REFRESH_TOKEN,
     CONF_SCHOOL,
     CONF_SERVER,
     CONF_SURNAME,
@@ -73,14 +71,6 @@ class ChildrenIndex:
                 "school": str(cr.get(CONF_SCHOOL)),
                 "server": server,
             }
-
-            at = cr.get(CONF_ACCESS_TOKEN)
-            rt = cr.get(CONF_REFRESH_TOKEN)
-
-            if at:
-                tmp[CONF_ACCESS_TOKEN] = at
-            if rt:
-                tmp[CONF_REFRESH_TOKEN] = rt
 
             by_key[ck] = tmp
             display = f"{cr.get('name', '')} {cr.get('surname', '')} ({cr.get('school', '')})".strip()
