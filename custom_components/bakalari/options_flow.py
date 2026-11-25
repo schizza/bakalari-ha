@@ -10,8 +10,10 @@ from homeassistant.helpers.storage import Store
 import voluptuous as vol
 
 from .const import (
+    CONF_ACCESS_TOKEN,
     CONF_CHILDREN,
     CONF_NAME,
+    CONF_REFRESH_TOKEN,
     CONF_SCHOOL,
     CONF_SERVER,
     CONF_SURNAME,
@@ -147,18 +149,26 @@ class BakalariOptionsFlow(config_entries.OptionsFlow):
         data_schema = vol.Schema({vol.Required(CONF_SCHOOL): vol.In(_schools)})
 
         if user_input is not None:
-            # change school for child
+            # change school for child — update URL, clear tokens, re-auth
             if self._edit_school_for:
-                self.children[self._edit_school_for][CONF_SCHOOL] = user_input[
-                    CONF_SCHOOL
-                ]
+                child = self.children[self._edit_school_for]
+                child[CONF_SCHOOL] = user_input[CONF_SCHOOL]
                 url = self._schools.get_url(name=user_input[CONF_SCHOOL])
-                self.children[self._edit_school_for][CONF_SERVER] = (
+                child[CONF_SERVER] = (
                     url if isinstance(url, str) and url else ""
                 )
+                child[CONF_ACCESS_TOKEN] = ""
+                child[CONF_REFRESH_TOKEN] = ""
+                self.children[self._edit_school_for] = child
 
-                self.async_create_entry(title="", data={CONF_CHILDREN: self.children})
-                return await self.async_step_edit_child()
+                self._new_child = {
+                    CONF_SCHOOL: child[CONF_SCHOOL],
+                    CONF_SERVER: child[CONF_SERVER],
+                    CONF_NAME: child.get(CONF_NAME, ""),
+                    CONF_SURNAME: child.get(CONF_SURNAME, ""),
+                    CONF_USERNAME: child.get(CONF_USERNAME, ""),
+                }
+                return await self.async_step_reauth_school()
 
             self._new_child[CONF_SCHOOL] = user_input[CONF_SCHOOL]  # pyright: ignore[reportOptionalSubscript]
             self._new_child[CONF_SERVER] = self._schools.get_url(
@@ -254,10 +264,65 @@ class BakalariOptionsFlow(config_entries.OptionsFlow):
                 )
 
             self._edit_school_for = child_id
-            self.async_create_entry(title="", data={CONF_CHILDREN: self.children})
             return await self.async_step_select_city()
 
         return self.async_show_form(step_id="edit_child", data_schema=data_schema)
+
+    async def async_step_reauth_school(self, user_input=None):
+        """Re-authenticate after school change."""
+
+        child_id = self._edit_school_for
+        child = self.children.get(child_id)
+        school = self._new_child.get(CONF_SCHOOL, "") if self._new_child else ""
+        server = self._new_child.get(CONF_SERVER, "") if self._new_child else ""
+
+        data_schema = vol.Schema(
+            {
+                vol.Required(
+                    CONF_USERNAME,
+                    default=child.get(CONF_USERNAME, "") if child else "",
+                ): str,
+                vol.Required("password"): str,
+            }
+        )
+
+        if user_input is not None:
+            try:
+                async with Bakalari(server) as api:
+                    credentials = await api.first_login(
+                        user_input[CONF_USERNAME], user_input["password"]
+                    )
+
+                child[CONF_USERNAME] = user_input[CONF_USERNAME]
+                child[CONF_ACCESS_TOKEN] = credentials.access_token or ""
+                child[CONF_REFRESH_TOKEN] = credentials.refresh_token or ""
+                self.children[child_id] = child
+
+                self._edit_school_for = None
+                return self.async_create_entry(
+                    title="", data={CONF_CHILDREN: self.children}
+                )
+
+            except Ex.InvalidLogin:
+                return self.async_show_form(
+                    step_id="reauth_school",
+                    data_schema=data_schema,
+                    errors={"base": "invalid_login"},
+                    description_placeholders={"school": school},
+                )
+            except Exception:
+                return self.async_show_form(
+                    step_id="reauth_school",
+                    data_schema=data_schema,
+                    errors={"base": "cannot_connect"},
+                    description_placeholders={"school": school},
+                )
+
+        return self.async_show_form(
+            step_id="reauth_school",
+            data_schema=data_schema,
+            description_placeholders={"school": school},
+        )
 
     async def async_step_select_child_to_delete(self, user_input=None):
         """Delete a child."""
