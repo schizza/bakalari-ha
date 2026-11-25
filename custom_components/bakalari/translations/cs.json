@@ -72,9 +72,11 @@
       },
       "login": {
         "title": "Přihlášení",
+        "description": "Server z registru: {registry_url}\nPokud je URL nesprávná, zadejte správnou do pole níže.",
         "data": {
           "username": "Uživatelské jméno",
-          "password": "Heslo"
+          "password": "Heslo",
+          "custom_server": "Vlastní server URL (volitelné)"
         }
       }
     }
