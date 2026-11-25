@@ -20,6 +20,7 @@ from .const import (
     CONF_REFRESH_TOKEN,
     DOMAIN,
     SCHOOLS_CACHE_FILE,
+    SCHOOLS_CACHE_MAX_AGE_DAYS,
     ChildRecord,
 )
 from .options_flow import BakalariOptionsFlow
@@ -47,6 +48,24 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         schools_storage = Store(self.hass, 1, SCHOOLS_CACHE_FILE)
         schools_cache = await schools_storage.async_load()
+
+        if schools_cache is not None:
+            cache_path = self.hass.config.path(".storage", SCHOOLS_CACHE_FILE)
+            try:
+                import os
+
+                age_days = (
+                    __import__("time").time() - os.path.getmtime(cache_path)
+                ) / 86400
+                if age_days > SCHOOLS_CACHE_MAX_AGE_DAYS:
+                    _LOGGER.info(
+                        "Schools cache is %.0f days old (max %d), refreshing",
+                        age_days,
+                        SCHOOLS_CACHE_MAX_AGE_DAYS,
+                    )
+                    schools_cache = None
+            except OSError:
+                pass
 
         if schools_cache is None:
             _LOGGER.debug(

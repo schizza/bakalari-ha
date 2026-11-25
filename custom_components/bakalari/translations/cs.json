@@ -41,7 +41,9 @@
   },
   "options": {
     "error": {
-      "invalid_login": "Neplatné přihlašovací údaje!"
+      "invalid_login": "Neplatné přihlašovací údaje!",
+      "schools_refreshed": "Seznam škol byl úspěšně obnoven.",
+      "cannot_connect": "Nelze se připojit k serveru!"
     },
     "step": {
       "init": {
